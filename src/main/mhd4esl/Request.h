@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -22,6 +22,7 @@
 #include <esl/http/server/Request.h>
 #include <string>
 #include <map>
+#include <memory>
 
 struct MHD_Connection;
 
@@ -29,29 +30,35 @@ namespace mhd4esl {
 
 class Request : public esl::http::server::Request {
 public:
-	Request(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url);
+	Request(MHD_Connection& mhdConnection, const char* httpVersion, const char* method, const char* url, bool isHttps, unsigned int port);
 	~Request() = default;
 
-	const std::string& getVersion() const noexcept override;
+	bool isHTTPS() const noexcept override;
+	const std::string& getHTTPVersion() const noexcept override;
+	const std::string& getUsername() const noexcept override;
+	const std::string& getPassword() const noexcept override;
+	const std::string& getDomain() const noexcept override;
+	unsigned int getPort() const noexcept override;
+	const std::string& getPath() const noexcept override;
 	const std::string& getMethod() const noexcept override;
-	const std::string& getUrl() const noexcept override;
 	bool hasArgument(const std::string& key) const noexcept override;
 	const std::string& getArgument(const std::string& key) const override;
 
 	const std::string& getClientAddress() const noexcept override;
 
-	const std::string& getUsername() const noexcept override;
-	const std::string& getPassword() const noexcept override;
 
 private:
 	MHD_Connection& mhdConnection;
 
-	const std::string version;
+	bool isHttps;
+	const std::string httpVersion;
+	std::string username;
+	std::string password;
+	mutable std::unique_ptr<std::string> host;
+	const unsigned int port;
 	const std::string method;
 	const std::string url;
 
-	std::string username;
-	std::string password;
 
     std::string acceptHeader;
     std::string contentTypeHeader;

@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -20,18 +20,17 @@
 #include <esl/http/server/ResponseBasicAuth.h>
 #include <esl/http/server/ResponseDynamic.h>
 #include <esl/http/server/ResponseStatic.h>
+#include <esl/Stacktrace.h>
 #include <microhttpd.h>
 
-#include <esl/Stacktrace.h>
-#include <esl/logging/Logger.h>
-
 namespace mhd4esl {
-esl::logging::Logger Connection::logger("mhd4esl::Connection");
 
-Connection::Connection(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url)
+Logger Connection::logger("mhd4esl::Connection");
+
+Connection::Connection(MHD_Connection& mhdConnection)
 : esl::http::server::Connection(),
-  mhdConnection(mhdConnection),
-  request(mhdConnection, version, method, url)
+  mhdConnection(mhdConnection)
+//  request(mhdConnection, version, method, url, isHTTPS, port)
 {
 }
 
@@ -40,11 +39,11 @@ Connection::~Connection() {
 		MHD_destroy_response(mhdResponse);
 	}
 }
-
+/*
 const esl::http::server::Request& Connection::getRequest() const noexcept {
 	return request;
 }
-
+*/
 
 bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseBasicAuth> response) noexcept {
     if(!response->isValid()) {
@@ -146,6 +145,7 @@ long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted,
 	esl::http::server::ResponseDynamic* responseDynamic = static_cast<esl::http::server::ResponseDynamic*>(cls);
 
     std::unique_ptr<esl::Stacktrace> stacktrace = nullptr;
+
     try {
         int size;
         size = responseDynamic->getData(buffer, bufferSize);
@@ -154,24 +154,21 @@ long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted,
         }
         return size;
     }
-#if 0
-    catch (esl::Exception& e) {
-    	logger.error << e.what() << std::endl;
-        stacktrace.reset(new esl::Stacktrace);
-    }
-#endif
     catch (std::exception& e) {
     	logger.error << e.what() << std::endl;
-        stacktrace.reset(new esl::Stacktrace);
+//    	exceptionMsg = e.what();
+
+    	const esl::Stacktrace* stacktracePtr = esl::getStacktrace(e);
+    	if(stacktracePtr) {
+            stacktrace.reset(new esl::Stacktrace(*stacktracePtr));
+    	}
     }
     catch (...) {
     	logger.error << "unknown exception" << std::endl;
-        stacktrace.reset(new esl::Stacktrace);
     }
+
     if(stacktrace) {
-        logger.error << "  *** Fehler beim Bearbeiten der Anfrage: START *** \n";
-        stacktrace->dump(logger);
-        logger.error << "  *** Fehler beim Bearbeiten der Anfrage: ENDE *** \n";
+        stacktrace->dump(logger.error);
     }
     return MHD_CONTENT_READER_END_WITH_ERROR;
 }

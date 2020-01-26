@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -24,12 +24,14 @@
 
 namespace mhd4esl {
 
-Request::Request(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url)
+Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const char* aMethod, const char* aUrl, bool aIsHttps, unsigned int aPort)
 : esl::http::server::Request(),
-  mhdConnection(mhdConnection),
-  version(version),
-  method(method),
-  url(url)
+  mhdConnection(aMhdConnection),
+  isHttps(aIsHttps),
+  httpVersion(aHttpVersion),
+  port(aPort),
+  method(aMethod),
+  url(aUrl)
 {
 	const MHD_ConnectionInfo* connectionInfo = MHD_get_connection_info(&mhdConnection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
 
@@ -87,16 +89,47 @@ Request::Request(MHD_Connection& mhdConnection, const char* version, const char*
 
 }
 
-const std::string& Request::getVersion() const noexcept {
-	return version;
+bool Request::isHTTPS() const noexcept {
+	return isHttps;
+}
+
+const std::string& Request::getHTTPVersion() const noexcept {
+	return httpVersion;
+}
+
+const std::string& Request::getUsername() const noexcept {
+	return username;
+}
+
+const std::string& Request::getPassword() const noexcept {
+	return password;
+}
+
+const std::string& Request::getDomain() const noexcept {
+	if(!host) {
+	    const char* hostStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Host");
+        if(hostStr) {
+        	std::string tmpStr(hostStr);
+
+            host.reset(new std::string(tmpStr.substr(0, tmpStr.find_first_of(':'))));
+        }
+        else {
+            host.reset(new std::string);
+        }
+	}
+	return *host.get();
+}
+
+unsigned int Request::getPort() const noexcept {
+	return port;
+}
+
+const std::string& Request::getPath() const noexcept {
+	return url;
 }
 
 const std::string& Request::getMethod() const noexcept {
 	return method;
-}
-
-const std::string& Request::getUrl() const noexcept {
-	return url;
 }
 
 bool Request::hasArgument(const std::string& key) const noexcept {
@@ -120,14 +153,6 @@ const std::string& Request::getArgument(const std::string& key) const {
 
 const std::string& Request::getClientAddress() const noexcept {
 	return clientAddress;
-}
-
-const std::string& Request::getUsername() const noexcept {
-	return username;
-}
-
-const std::string& Request::getPassword() const noexcept {
-	return password;
 }
 
 } /* namespace mhd4esl */

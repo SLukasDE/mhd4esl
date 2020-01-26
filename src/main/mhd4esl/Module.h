@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -19,11 +19,11 @@
 #ifndef MHD4ESL_MODULE_H_
 #define MHD4ESL_MODULE_H_
 
-#include <esl/bootstrap/Module.h>
+#include <esl/module/Module.h>
 
 namespace mhd4esl {
 
-const esl::bootstrap::Module& getModule();
+const esl::module::Module& getModule();
 
 } /* namespace mhd4esl */
 

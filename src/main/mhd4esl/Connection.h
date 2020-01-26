@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -20,12 +20,12 @@
 #define MHD4ESL_CONNECTION_H_
 
 #include <mhd4esl/Request.h>
+//#include <mhd4esl/RequestContext.h>
+#include <mhd4esl/Logger.h>
 #include <esl/http/server/Connection.h>
-#include <esl/http/server/RequestHandler.h>
-#include <esl/logging/Logger.h>
 #include <string>
-#include <memory>
 #include <vector>
+#include <functional>
 
 struct MHD_Connection;
 struct MHD_Response;
@@ -36,11 +36,13 @@ class Socket;
 
 class Connection : public esl::http::server::Connection {
 friend class Socket;
+static Logger logger;
 public:
-	Connection(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url);
+	Connection(MHD_Connection& mhdConnection);
 	~Connection();
 
-	const esl::http::server::Request& getRequest() const noexcept override;
+//	const esl::http::server::Request& getRequest() const noexcept;
+
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseBasicAuth> response) noexcept override;
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseDynamic> response) noexcept override;
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseStatic> response) noexcept override;
@@ -52,14 +54,13 @@ private:
     static long int contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize);
     static void contentReaderFreeCallback(void* cls);
 
-	std::unique_ptr<esl::http::server::RequestHandler> requestHandler;
+//	std::unique_ptr<RequestContext> requestContext;
+
 	MHD_Connection& mhdConnection;
 	std::vector<MHD_Response*> mhdResponses;
 	std::vector<std::function<bool()>> queueToSend;
 	bool responseSent = false;
-	Request request;
-
-	static esl::logging::Logger logger;
+//	Request request;
 };
 
 } /* namespace mhd4esl */

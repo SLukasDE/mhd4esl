@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019 Sven Lukas
+ * Copyright (C) 2019, 2020 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -18,52 +18,52 @@
 
 #include <mhd4esl/Module.h>
 #include <mhd4esl/Socket.h>
+
 #include <esl/http/server/Interface.h>
-#include <esl/http/server/RequestHandlerFactory.h>
-#include <esl/bootstrap/Interface.h>
+#include <esl/http/server/RequestHandler.h>
+#include <esl/module/Interface.h>
+
+#include <memory>
 #include <new>         // placement new
 #include <type_traits> // aligned_storage
 
 namespace mhd4esl {
 
 namespace {
-class Module : public esl::bootstrap::Module {
+
+class Module : public esl::module::Module {
 public:
-	Module() = default;
-	~Module() = default;
-
-	static void initialize();
-
-private:
-	esl::http::server::Interface interfaceHttpServer;
+	Module();
 };
 
 typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
 Module& module = reinterpret_cast<Module&> (moduleBuffer);
+bool isInitialized = false;
 
-esl::http::server::Interface::Socket* createSocket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandlerFactory requestHandlerFactory) {
+esl::http::server::Interface::Socket* createSocket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandler::Factory requestHandlerFactory) {
 	return new Socket(port, numThreads, requestHandlerFactory);
 }
 
-void Module::initialize() {
-	static bool isInitialized = false;
+Module::Module()
+: esl::module::Module()
+{
+	esl::module::Module::initialize(*this);
 
+	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::server::Interface(
+			getId(), "", &createSocket)));
+}
+
+} /* anonymous namespace */
+
+const esl::module::Module& getModule() {
 	if(isInitialized == false) {
-		isInitialized = true;
-
 		/* ***************** *
 		 * initialize module *
 		 * ***************** */
-		new (&module) Module(); // placement new
-		esl::bootstrap::Module::initialize(module);
-		esl::http::server::Interface::initialize(module.interfaceHttpServer, &createSocket);
-		module.interfacesProvided.next = &module.interfaceHttpServer;
-	}
-}
-}
 
-const esl::bootstrap::Module& getModule() {
-	Module::initialize();
+		isInitialized = true;
+		new (&module) Module(); // placement new
+	}
 	return module;
 }
 
