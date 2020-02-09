@@ -62,7 +62,7 @@ const esl::module::Module& getModule() {
 		 * ***************** */
 
 		isInitialized = true;
-		new (&module) Module(); // placement new
+		new (&module) Module; // placement new
 	}
 	return module;
 }
