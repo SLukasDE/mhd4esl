@@ -40,8 +40,8 @@ typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffe
 Module& module = reinterpret_cast<Module&> (moduleBuffer);
 bool isInitialized = false;
 
-esl::http::server::Interface::Socket* createSocket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandler::Factory requestHandlerFactory) {
-	return new Socket(port, numThreads, requestHandlerFactory);
+std::unique_ptr<esl::http::server::Interface::Socket> createSocket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandler::Factory requestHandlerFactory) {
+	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, numThreads, requestHandlerFactory));
 }
 
 Module::Module()
