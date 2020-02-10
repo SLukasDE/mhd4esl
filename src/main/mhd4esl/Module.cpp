@@ -50,7 +50,7 @@ Module::Module()
 	esl::module::Module::initialize(*this);
 
 	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::server::Interface(
-			getId(), "", &createSocket)));
+			getId(), "libmicrohttpd", &createSocket)));
 }
 
 } /* anonymous namespace */
