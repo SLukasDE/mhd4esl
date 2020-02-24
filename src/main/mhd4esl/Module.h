@@ -23,7 +23,7 @@
 
 namespace mhd4esl {
 
-const esl::module::Module& getModule();
+esl::module::Module& getModule();
 
 } /* namespace mhd4esl */
 
