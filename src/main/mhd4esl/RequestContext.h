@@ -20,10 +20,10 @@
 #define MHD4ESL_REQUESTCONTEXT_H_
 
 #include <esl/http/server/RequestContext.h>
-#include <esl/http/server/RequestHandler.h>
+#include <esl/http/server/requesthandler/Interface.h>
 #include <esl/http/server/Connection.h>
 #include <esl/http/server/Request.h>
-#include <esl/Object.h>
+#include <esl/object/Interface.h>
 #include <mhd4esl/Connection.h>
 #include <mhd4esl/Request.h>
 #include <string>
@@ -44,13 +44,13 @@ public:
 	const esl::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
 
-	esl::Object* getObject(const std::string& id) const override;
+	esl::object::Interface::Object* getObject(const std::string& id) const override;
 
 private:
 	const Socket& socket;
 	mutable Connection connection;
 	Request request;
-	std::unique_ptr<esl::http::server::RequestHandler> requestHandler;
+	std::unique_ptr<esl::http::server::requesthandler::Interface::RequestHandler> requestHandler;
 };
 
 } /* namespace mhd4esl */

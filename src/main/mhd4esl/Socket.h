@@ -19,7 +19,7 @@
 #ifndef MHD4ESL_SOCKET_H_
 #define MHD4ESL_SOCKET_H_
 
-#include <esl/http/server/RequestHandler.h>
+#include <esl/http/server/requesthandler/Interface.h>
 #include <esl/http/server/Interface.h>
 #include <esl/http/server/Request.h>
 #include <cstdint>
@@ -37,7 +37,7 @@ class RequestContext;
 
 class Socket : public esl::http::server::Interface::Socket {
 public:
-	Socket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandler::Factory requestHandlerFactory);
+	Socket(uint16_t port, uint16_t numThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler);
 	~Socket();
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
@@ -65,7 +65,7 @@ private:
 
 	uint16_t port;
 	uint16_t numThreads;
-	esl::http::server::RequestHandler::Factory requestHandlerFactory;
+	esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;

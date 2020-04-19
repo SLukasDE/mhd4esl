@@ -30,7 +30,6 @@ Logger Connection::logger("mhd4esl::Connection");
 Connection::Connection(MHD_Connection& mhdConnection)
 : esl::http::server::Connection(),
   mhdConnection(mhdConnection)
-//  request(mhdConnection, version, method, url, isHTTPS, port)
 {
 }
 
@@ -39,11 +38,6 @@ Connection::~Connection() {
 		MHD_destroy_response(mhdResponse);
 	}
 }
-/*
-const esl::http::server::Request& Connection::getRequest() const noexcept {
-	return request;
-}
-*/
 
 bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseBasicAuth> response) noexcept {
     if(!response->isValid()) {

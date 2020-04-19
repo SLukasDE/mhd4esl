@@ -20,9 +20,11 @@
 #include <mhd4esl/Socket.h>
 
 #include <esl/http/server/Interface.h>
-#include <esl/http/server/RequestHandler.h>
+#include <esl/http/server/requesthandler/Interface.h>
 #include <esl/module/Interface.h>
+#include <esl/Stacktrace.h>
 
+#include <stdexcept>
 #include <memory>
 #include <new>         // placement new
 #include <type_traits> // aligned_storage
@@ -40,8 +42,8 @@ typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffe
 Module& module = reinterpret_cast<Module&> (moduleBuffer);
 bool isInitialized = false;
 
-std::unique_ptr<esl::http::server::Interface::Socket> createSocket(uint16_t port, uint16_t numThreads, esl::http::server::RequestHandler::Factory requestHandlerFactory) {
-	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, numThreads, requestHandlerFactory));
+std::unique_ptr<esl::http::server::Interface::Socket> createSocket(uint16_t port, uint16_t numThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler) {
+	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, numThreads, createRequestHandler));
 }
 
 Module::Module()
@@ -50,21 +52,35 @@ Module::Module()
 	esl::module::Module::initialize(*this);
 
 	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::server::Interface(
-			getId(), "libmicrohttpd", &createSocket)));
+			getId(), "mhd4esl", &createSocket)));
 }
 
 } /* anonymous namespace */
 
-esl::module::Module& getModule() {
-	if(isInitialized == false) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
+esl::module::Module* getModulePointer(const std::string& moduleName) {
+	if(moduleName.empty() || moduleName != "mhd4esl") {
+		if(isInitialized == false) {
+			/* ***************** *
+			 * initialize module *
+			 * ***************** */
 
-		isInitialized = true;
-		new (&module) Module; // placement new
+			isInitialized = true;
+			new (&module) Module; // placement new
+		}
+		return &module;
 	}
-	return module;
+
+	return esl::getModulePointer(moduleName);
+}
+
+esl::module::Module& getModule(const std::string& moduleName) {
+	esl::module::Module* modulePointer = getModulePointer(moduleName);
+
+	if(modulePointer == nullptr) {
+		throw esl::addStacktrace(std::runtime_error("request for unknown module \"" + moduleName + "\""));
+	}
+
+	return *modulePointer;
 }
 
 } /* namespace mhd4esl */

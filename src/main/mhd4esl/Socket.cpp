@@ -22,7 +22,6 @@
 #include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
 #include <esl/module/Module.h>
-#include <esl/http/server/RequestHandler.h>
 #include <esl/http/server/ResponseStatic.h>
 #include <esl/Stacktrace.h>
 #include <microhttpd.h>
@@ -64,7 +63,7 @@ const std::string PAGE_500(
 //const std::string ACCESS_DENIED_PAGE("<html><head><title>Zugriff verboten</title></head><body>Sie sind nicht berechtigt auf die angeforderte Seite zuzugreifen</body></html>");
 //const std::string UNAUTHORIZED_PAGE("<html><head><title>Zugriff Verweigert</title></head><body>Der Zugriff wurde verweigert</body></html>");
 
-class InternalRequestHandler : public esl::http::server::RequestHandler {
+class InternalRequestHandler : public esl::http::server::requesthandler::Interface::RequestHandler {
 public:
 	InternalRequestHandler(Connection& connection, unsigned short httpStatus, const std::string& content);
 
@@ -72,7 +71,7 @@ public:
 };
 
 InternalRequestHandler::InternalRequestHandler(Connection& connection, unsigned short httpStatus, const std::string& content)
-: esl::http::server::RequestHandler()
+: esl::http::server::requesthandler::Interface::RequestHandler()
 {
 	std::unique_ptr<esl::http::server::ResponseStatic> response(new esl::http::server::ResponseStatic(httpStatus, "text/html", content.data(), content.size()));
 	connection.sendResponse(std::move(response));
@@ -206,11 +205,11 @@ mhdSniCallback(gnutls_session_t session,
 
 } /* anonymour namespace */
 
-Socket::Socket(uint16_t aPort, uint16_t aNumThreads, esl::http::server::RequestHandler::Factory aRequestHandlerFactory)
+Socket::Socket(uint16_t aPort, uint16_t aNumThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler aCreateRequestHandler)
 : esl::http::server::Interface::Socket(),
   port(aPort),
   numThreads(aNumThreads),
-  requestHandlerFactory(aRequestHandlerFactory)
+  createRequestHandler(aCreateRequestHandler)
 {
     std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
 	socketCerts.insert(std::make_pair(this, Certs()));
@@ -371,7 +370,7 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
     std::unique_ptr<esl::Stacktrace> stacktrace = nullptr;
     try {
         if(!requestContext.requestHandler) {
-        	requestContext.requestHandler = requestHandlerFactory(requestContext);
+        	requestContext.requestHandler = createRequestHandler(requestContext);
             if(requestContext.requestHandler && *uploadDataSize == 0) {
 // ToDo: Logging! When does this happen?
 //       Do we get a second call of this Method Socket::accept(...) to come to the point
