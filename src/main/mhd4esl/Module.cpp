@@ -39,8 +39,7 @@ public:
 };
 
 typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module& module = reinterpret_cast<Module&> (moduleBuffer);
-bool isInitialized = false;
+Module* modulePtr = nullptr;
 
 std::unique_ptr<esl::http::server::Interface::Socket> createSocket(uint16_t port, uint16_t numThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler) {
 	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, numThreads, createRequestHandler));
@@ -57,30 +56,17 @@ Module::Module()
 
 } /* anonymous namespace */
 
-esl::module::Module* getModulePointer(const std::string& moduleName) {
-	if(moduleName.empty() || moduleName != "mhd4esl") {
-		if(isInitialized == false) {
-			/* ***************** *
-			 * initialize module *
-			 * ***************** */
+esl::module::Module& getModule() {
+	if(modulePtr == nullptr) {
+		/* ***************** *
+		 * initialize module *
+		 * ***************** */
 
-			isInitialized = true;
-			new (&module) Module; // placement new
-		}
-		return &module;
+		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
+		new (modulePtr) Module; // placement new
 	}
 
-	return esl::getModulePointer(moduleName);
-}
-
-esl::module::Module& getModule(const std::string& moduleName) {
-	esl::module::Module* modulePointer = getModulePointer(moduleName);
-
-	if(modulePointer == nullptr) {
-		throw esl::addStacktrace(std::runtime_error("request for unknown module \"" + moduleName + "\""));
-	}
-
-	return *modulePointer;
+	return *modulePtr;
 }
 
 } /* namespace mhd4esl */

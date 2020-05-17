@@ -17,11 +17,18 @@
  */
 
 #include <mhd4esl/Connection.h>
+
 #include <esl/http/server/ResponseBasicAuth.h>
 #include <esl/http/server/ResponseDynamic.h>
+#include <esl/http/server/ResponseFile.h>
 #include <esl/http/server/ResponseStatic.h>
 #include <esl/Stacktrace.h>
+
 #include <microhttpd.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 namespace mhd4esl {
 
@@ -89,6 +96,37 @@ bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseDynamic
 	queueToSend.push_back(sendFunc);
 
 //	MHD_destroy_response(mhdResponse);
+	return true;
+}
+
+bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseFile> response) noexcept {
+    if(!response->isValid()) {
+    	return false;
+    }
+
+    int fd = open(response->getPath().c_str(), O_RDONLY);
+    if(fd < 0) {
+        return false;
+    }
+    size_t size = static_cast<size_t>(lseek(fd, 0, SEEK_END));
+    lseek(fd, 0, SEEK_SET);
+
+    MHD_Response* mhdResponse = MHD_create_response_from_fd(size, fd);
+	if(mhdResponse == nullptr) {
+		return false;
+	}
+	mhdResponses.push_back(mhdResponse);
+
+	for(const auto& header : response->getHeaders()) {
+		MHD_add_response_header(mhdResponse, header.first.c_str(), header.second.c_str());
+	}
+
+	unsigned short httpStatus = response->getHttpStatus();
+	std::function<bool()> sendFunc = [this, httpStatus, mhdResponse]() {
+	    return MHD_queue_response(&mhdConnection, httpStatus, mhdResponse) == MHD_YES;
+	};
+	queueToSend.push_back(sendFunc);
+
 	return true;
 }
 

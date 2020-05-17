@@ -45,6 +45,7 @@ public:
 
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseBasicAuth> response) noexcept override;
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseDynamic> response) noexcept override;
+	bool sendResponse(std::unique_ptr<esl::http::server::ResponseFile> response) noexcept override;
 	bool sendResponse(std::unique_ptr<esl::http::server::ResponseStatic> response) noexcept override;
 
 	bool sendQueue() noexcept;
