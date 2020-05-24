@@ -21,12 +21,15 @@
 #include <mhd4esl/Connection.h>
 #include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
+
 #include <esl/module/Module.h>
 #include <esl/http/server/ResponseStatic.h>
 #include <esl/Stacktrace.h>
+
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/abstract.h>
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -73,7 +76,7 @@ public:
 InternalRequestHandler::InternalRequestHandler(Connection& connection, unsigned short httpStatus, const std::string& content)
 : esl::http::server::requesthandler::Interface::RequestHandler()
 {
-	std::unique_ptr<esl::http::server::ResponseStatic> response(new esl::http::server::ResponseStatic(httpStatus, "text/html", content.data(), content.size()));
+	std::unique_ptr<esl::http::server::ResponseStatic> response(new esl::http::server::ResponseStatic(httpStatus, esl::utility::MIME::textHtml, content.data(), content.size()));
 	connection.sendResponse(std::move(response));
 	connection.sendQueue();
 }
