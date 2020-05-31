@@ -20,9 +20,11 @@
 #define MHD4ESL_REQUEST_H_
 
 #include <esl/http/server/Request.h>
+
 #include <string>
 #include <map>
 #include <memory>
+#include <cstdint>
 
 struct MHD_Connection;
 
@@ -30,21 +32,25 @@ namespace mhd4esl {
 
 class Request : public esl::http::server::Request {
 public:
-	Request(MHD_Connection& mhdConnection, const char* httpVersion, const char* method, const char* url, bool isHttps, unsigned int port);
+	Request(MHD_Connection& mhdConnection, const char* httpVersion, const char* method, const char* url, bool isHttps, uint16_t hostPort);
 	~Request() = default;
 
 	bool isHTTPS() const noexcept override;
 	const std::string& getHTTPVersion() const noexcept override;
 	const std::string& getUsername() const noexcept override;
 	const std::string& getPassword() const noexcept override;
-	const std::string& getDomain() const noexcept override;
-	unsigned int getPort() const noexcept override;
+
+	const std::string& getHost() const noexcept override;
+	const std::string& getHostAddress() const noexcept override;
+	uint16_t getHostPort() const noexcept override;
+
+	const std::string& getRemoteAddress() const noexcept override;
+	uint16_t getRemotePort() const noexcept override;
+
 	const std::string& getPath() const noexcept override;
 	const std::string& getMethod() const noexcept override;
 	bool hasArgument(const std::string& key) const noexcept override;
 	const std::string& getArgument(const std::string& key) const override;
-
-	const std::string& getClientAddress() const noexcept override;
 
 
 private:
@@ -54,8 +60,14 @@ private:
 	const std::string httpVersion;
 	std::string username;
 	std::string password;
-	mutable std::unique_ptr<std::string> host;
-	const unsigned int port;
+
+	std::string host;
+	const uint16_t hostPort;
+	std::string hostAddress;
+
+	std::string remoteAddress;
+	uint16_t remotePort = 0;
+
 	const std::string method;
 	const std::string url;
 
@@ -64,7 +76,6 @@ private:
     std::string contentTypeHeader;
     std::string contentEncodingHeader;
 
-	std::string clientAddress;
 	mutable std::map<std::string, std::string> arguments;
 };
 

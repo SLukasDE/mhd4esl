@@ -62,10 +62,6 @@ const std::string PAGE_500(
 		"</body>\n"
 		"</html>\n");
 
-//const std::string REQUEST_ENTITY_TOO_LARGE_PAGE("Request too large");
-//const std::string ACCESS_DENIED_PAGE("<html><head><title>Zugriff verboten</title></head><body>Sie sind nicht berechtigt auf die angeforderte Seite zuzugreifen</body></html>");
-//const std::string UNAUTHORIZED_PAGE("<html><head><title>Zugriff Verweigert</title></head><body>Der Zugriff wurde verweigert</body></html>");
-
 class InternalRequestHandler : public esl::http::server::requesthandler::Interface::RequestHandler {
 public:
 	InternalRequestHandler(Connection& connection, unsigned short httpStatus, const std::string& content);

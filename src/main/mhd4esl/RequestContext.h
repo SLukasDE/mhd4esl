@@ -24,10 +24,13 @@
 #include <esl/http/server/Connection.h>
 #include <esl/http/server/Request.h>
 #include <esl/object/Interface.h>
+
 #include <mhd4esl/Connection.h>
 #include <mhd4esl/Request.h>
+
 #include <string>
 #include <memory>
+#include <cstdint>
 
 struct MHD_Connection;
 
@@ -38,7 +41,7 @@ class Socket;
 class RequestContext : public esl::http::server::RequestContext {
 	friend class Socket;
 public:
-	RequestContext(const Socket& socket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, unsigned int port);
+	RequestContext(const Socket& socket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port);
 
 	esl::http::server::Connection& getConnection() const override;
 	const esl::http::server::Request& getRequest() const override;

@@ -21,39 +21,47 @@
 #include <microhttpd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <cstdlib>
 
 namespace mhd4esl {
 
-Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const char* aMethod, const char* aUrl, bool aIsHttps, unsigned int aPort)
+Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const char* aMethod, const char* aUrl, bool aIsHttps, uint16_t aHostPort)
 : esl::http::server::Request(),
   mhdConnection(aMhdConnection),
   isHttps(aIsHttps),
   httpVersion(aHttpVersion),
-  port(aPort),
+  hostPort(aHostPort),
   method(aMethod),
   url(aUrl)
 {
+    const char* hostStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Host");
+    if(hostStr) {
+    	host = hostStr;
+    }
+
 	const MHD_ConnectionInfo* connectionInfo = MHD_get_connection_info(&mhdConnection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
 
 	if(connectionInfo != nullptr) {
-		char str[INET6_ADDRSTRLEN];
-		bool conversionSuccessfull = false;
+		char strBuffer[INET6_ADDRSTRLEN];
 
 		switch(connectionInfo->client_addr->sa_family) {
 		case AF_INET:
-			conversionSuccessfull = inet_ntop(connectionInfo->client_addr->sa_family,
+			if(inet_ntop(connectionInfo->client_addr->sa_family,
 					&reinterpret_cast<sockaddr_in const*>(connectionInfo->client_addr)->sin_addr,
-					str, INET6_ADDRSTRLEN) != nullptr;
+					strBuffer, INET6_ADDRSTRLEN) != nullptr) {
+				remoteAddress = std::string(strBuffer);
+			}
 			break;
 		case AF_INET6:
-			conversionSuccessfull = inet_ntop(connectionInfo->client_addr->sa_family,
+			if(inet_ntop(connectionInfo->client_addr->sa_family,
 					&reinterpret_cast<sockaddr_in6 const*>(connectionInfo->client_addr)->sin6_addr,
-					str, INET6_ADDRSTRLEN) != nullptr;
+					strBuffer, INET6_ADDRSTRLEN) != nullptr) {
+				remoteAddress = std::string(strBuffer);
+			}
 			break;
 		}
-		if(conversionSuccessfull) {
-			clientAddress = ::std::string(str);
-		}
+
+		remotePort = static_cast<uint16_t>(reinterpret_cast<sockaddr_in const*>(connectionInfo->client_addr)->sin_port);
 	}
 
 	char* tmpPassword = nullptr;
@@ -63,12 +71,12 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
 
 	if(tmpUsername != nullptr) {
 		username = tmpUsername;
-		::free(tmpUsername);
+		std::free(tmpUsername);
 	}
 
 	if(tmpPassword != nullptr) {
 		password = tmpPassword;
-		::free(tmpPassword);
+		std::free(tmpPassword);
     }
 
     const char* acceptHeaderStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Accept");
@@ -80,8 +88,9 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
     if(contentTypeHeaderStr) {
         contentTypeHeader = std::string(contentTypeHeaderStr);
     }
+
     // e.g. Content-Encoding: gzip
-    ::std::string contentEncodingHeader;
+    std::string contentEncodingHeader;
     const char* contentEncodingHeaderStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Content-Encoding");
     if(contentEncodingHeaderStr) {
         contentEncodingHeader = std::string(contentEncodingHeaderStr);
@@ -105,23 +114,16 @@ const std::string& Request::getPassword() const noexcept {
 	return password;
 }
 
-const std::string& Request::getDomain() const noexcept {
-	if(!host) {
-	    const char* hostStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Host");
-        if(hostStr) {
-        	std::string tmpStr(hostStr);
-
-            host.reset(new std::string(tmpStr.substr(0, tmpStr.find_first_of(':'))));
-        }
-        else {
-            host.reset(new std::string);
-        }
-	}
-	return *host.get();
+const std::string& Request::getHost() const noexcept {
+	return host;
 }
 
-unsigned int Request::getPort() const noexcept {
-	return port;
+const std::string& Request::getHostAddress() const noexcept {
+	return hostAddress;
+}
+
+uint16_t Request::getHostPort() const noexcept {
+	return hostPort;
 }
 
 const std::string& Request::getPath() const noexcept {
@@ -151,8 +153,12 @@ const std::string& Request::getArgument(const std::string& key) const {
 	return arguments[key];
 }
 
-const std::string& Request::getClientAddress() const noexcept {
-	return clientAddress;
+const std::string& Request::getRemoteAddress() const noexcept {
+	return remoteAddress;
+}
+
+uint16_t Request::getRemotePort() const noexcept {
+	return remotePort;
 }
 
 } /* namespace mhd4esl */

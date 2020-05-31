@@ -21,7 +21,7 @@
 
 namespace mhd4esl {
 
-RequestContext::RequestContext(const Socket& aSocket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, unsigned int port)
+RequestContext::RequestContext(const Socket& aSocket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
 : esl::http::server::RequestContext(),
   socket(aSocket),
   connection(mhdConnection),
