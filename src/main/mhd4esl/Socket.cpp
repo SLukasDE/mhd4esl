@@ -204,36 +204,48 @@ mhdSniCallback(gnutls_session_t session,
 
 } /* anonymour namespace */
 
-Socket::Socket(uint16_t aPort, uint16_t aNumThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler aCreateRequestHandler)
+
+std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& values) {
+	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, createRequestHandler, values));
+}
+
+Socket::Socket(uint16_t aPort, esl::http::server::requesthandler::Interface::CreateRequestHandler aCreateRequestHandler, const esl::object::Values<std::string>& values)
 : esl::http::server::Interface::Socket(),
   port(aPort),
-  numThreads(aNumThreads),
+//  numThreads(aNumThreads),
   createRequestHandler(aCreateRequestHandler)
 {
-    std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
+	if(values.hasValue("threads")) {
+		uint16_t threads = static_cast<uint16_t>(std::stoi(values.getValue("threads")));
+	    if(threads > 0) {
+	    	numThreads = threads;
+	    }
+	}
+
+	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
 	socketCerts.insert(std::make_pair(this, Certs()));
 }
 
 Socket::~Socket() {
-    if (daemonPtr != nullptr) {
-    	logger.debug << "Stopping HTTP socket at port " << port << std::endl;
-        MHD_Daemon* d = static_cast<MHD_Daemon*>(daemonPtr);
-        MHD_stop_daemon (d);
-        daemonPtr = nullptr;
+	if (daemonPtr != nullptr) {
+		logger.debug << "Stopping HTTP socket at port " << port << std::endl;
+		MHD_Daemon* d = static_cast<MHD_Daemon*>(daemonPtr);
+		MHD_stop_daemon (d);
+		daemonPtr = nullptr;
 
-        std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
-    	socketCerts.erase(this);
-    }
+		std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
+		socketCerts.erase(this);
+	}
 }
 
 void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
-    if (daemonPtr != nullptr) {
+	if (daemonPtr != nullptr) {
 		throw esl::addStacktrace(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
-    }
+	}
 
-    std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
+	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
 
-    Cert& cert = socketCerts[this][hostname];
+	Cert& cert = socketCerts[this][hostname];
 	gnutls_datum_t gnutls_datum;
 	int rc;
 
@@ -257,72 +269,72 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 }
 
 void Socket::setObject(const std::string& id, Socket::GetObject getObject) {
-    if (daemonPtr != nullptr) {
+	if (daemonPtr != nullptr) {
 		throw esl::addStacktrace(std::runtime_error("Calling Socket::setObjectById not allowed, because HTTP socket is already listening"));
-    }
+	}
 
-    objects[id] = getObject;
+	objects[id] = getObject;
 }
 
 bool Socket::listen() {
-    if (daemonPtr != nullptr) {
-    	logger.debug << "HTTP socket already listening " << port << std::endl;
-    	return true;
-    }
+	if (daemonPtr != nullptr) {
+		logger.debug << "HTTP socket already listening " << port << std::endl;
+		return true;
+	}
 
-    usingTLS = !socketCerts[this].empty();
-    unsigned int flags = MHD_USE_SELECT_INTERNALLY;
+	usingTLS = !socketCerts[this].empty();
+	unsigned int flags = MHD_USE_SELECT_INTERNALLY;
 
-    flags |= MHD_USE_THREAD_PER_CONNECTION;
-    // flags |= MHD_USE_POLL_INTERNALLY;
+	flags |= MHD_USE_THREAD_PER_CONNECTION;
+	// flags |= MHD_USE_POLL_INTERNALLY;
 
-    // flags |= MHD_USE_SUSPEND_RESUME;
+	// flags |= MHD_USE_SUSPEND_RESUME;
 
 #ifdef MHD4ESL_LOGGING_LEVEL_DEBUG
     flags |= MHD_USE_DEBUG;
 #endif
 
-    if(usingTLS) {
-        daemonPtr = MHD_start_daemon(flags | MHD_USE_SSL,
-                port,
-                0, 0, mhdAcceptHandler, this,
-                MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
-//                MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
-                MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-                MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
-                MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
+	if(usingTLS) {
+		daemonPtr = MHD_start_daemon(flags | MHD_USE_SSL,
+				port,
+				0, 0, mhdAcceptHandler, this,
+				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
+				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
+				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
+				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
 				MHD_OPTION_HTTPS_CERT_CALLBACK, &mhdSniCallback,
-                MHD_OPTION_END);
-    }
-    else {
-        daemonPtr = MHD_start_daemon(flags,
-                port,
-                0, 0, mhdAcceptHandler, this,
-                MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
-//                MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
-                MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-                MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
-                MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
-                MHD_OPTION_END);
-    }
+				MHD_OPTION_END);
+	}
+	else {
+			daemonPtr = MHD_start_daemon(flags,
+					port,
+					0, 0, mhdAcceptHandler, this,
+					MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
+					// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
+					MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
+					MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
+					MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
+					MHD_OPTION_END);
+	}
 
-    if(daemonPtr == nullptr) {
-    	logger.debug << "Couldn't start HTTP socket at port " << port << std::endl;
-    	return false;
-    }
+	if(daemonPtr == nullptr) {
+		logger.debug << "Couldn't start HTTP socket at port " << port << std::endl;
+		return false;
+	}
 
 	logger.debug << "HTTP socket started at port " << port << std::endl;
 	return true;
 }
 
 void Socket::release() {
-    if (daemonPtr == nullptr) {
-    	logger.debug << "HTTP socket already released " << port << std::endl;
-    	return;
-    }
+	if (daemonPtr == nullptr) {
+		logger.debug << "HTTP socket already released " << port << std::endl;
+		return;
+	}
 
-    MHD_stop_daemon(static_cast<MHD_Daemon *>(daemonPtr));
-    daemonPtr = nullptr;
+	MHD_stop_daemon(static_cast<MHD_Daemon *>(daemonPtr));
+	daemonPtr = nullptr;
 	logger.debug << "HTTP socket released at port " << port << std::endl;
 }
 
@@ -335,91 +347,91 @@ Socket::GetObject Socket::getObject(const std::string& id) const {
 }
 
 int Socket::mhdAcceptHandler(void* cls,
-        MHD_Connection* mhdConnection,
-        const char* url,
-        const char* method,
-        const char* version,
-        const char* uploadData,
-        size_t* uploadDataSize,
-        void** connectionSpecificDataPtr) noexcept
+		MHD_Connection* mhdConnection,
+		const char* url,
+		const char* method,
+		const char* version,
+		const char* uploadData,
+		size_t* uploadDataSize,
+		void** connectionSpecificDataPtr) noexcept
 {
-    Socket* socket = static_cast<Socket*>(cls);
-    if(socket == nullptr) {
-        logger.error << "  *** socket == nullptr *** \n";
-    	return MHD_NO;
-    }
+	Socket* socket = static_cast<Socket*>(cls);
+	if(socket == nullptr) {
+		logger.error << "  *** socket == nullptr *** \n";
+		return MHD_NO;
+	}
 
-    if(mhdConnection == nullptr) {
-        logger.error << "  *** mhdConnection == nullptr *** \n";
-    	return MHD_NO;
-    }
+	if(mhdConnection == nullptr) {
+		logger.error << "  *** mhdConnection == nullptr *** \n";
+		return MHD_NO;
+	}
 
-    RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
-    if(*requestContext == nullptr) {
-    	*requestContext = new RequestContext(*socket, *mhdConnection, version, method, url, socket->usingTLS, socket->port);
-    }
+	RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
+	if(*requestContext == nullptr) {
+		*requestContext = new RequestContext(*socket, *mhdConnection, version, method, url, socket->usingTLS, socket->port);
+	}
 
-    socket->accessThreadInc();
-    bool rv = socket->accept(**requestContext, uploadData, uploadDataSize);
-    socket->accessThreadDec();
-    return rv ? MHD_YES : MHD_NO;
+	socket->accessThreadInc();
+	bool rv = socket->accept(**requestContext, uploadData, uploadDataSize);
+	socket->accessThreadDec();
+	return rv ? MHD_YES : MHD_NO;
 }
 
 bool Socket::accept(RequestContext& requestContext, const char* uploadData, std::size_t* uploadDataSize) noexcept {
-    std::unique_ptr<esl::Stacktrace> stacktrace = nullptr;
-    try {
-        if(!requestContext.requestHandler) {
-        	requestContext.requestHandler = createRequestHandler(requestContext);
-            if(requestContext.requestHandler && *uploadDataSize == 0) {
+	std::unique_ptr<esl::Stacktrace> stacktrace = nullptr;
+	try {
+		if(!requestContext.requestHandler) {
+			requestContext.requestHandler = createRequestHandler(requestContext);
+			if(requestContext.requestHandler && *uploadDataSize == 0) {
 // ToDo: Logging! When does this happen?
 //       Do we get a second call of this Method Socket::accept(...) to come to the point
 //       where we do call connection.requestHandler->process(...) ?
-                return true;
-            }
-        }
+				return true;
+			}
+		}
 
-        if(requestContext.requestHandler) {
-            bool lastCall = (*uploadDataSize == 0);
+		if(requestContext.requestHandler) {
+			bool lastCall = (*uploadDataSize == 0);
 
-            if(requestContext.connection.hasResponseSent()) {
-                logger.debug << "accessHandler: Send PRE-YES" << std::endl;
-            	*uploadDataSize = 0;
-                return true;
-            }
+			if(requestContext.connection.hasResponseSent()) {
+				logger.debug << "accessHandler: Send PRE-YES" << std::endl;
+				*uploadDataSize = 0;
+				return true;
+			}
 
-        	if(requestContext.requestHandler->process(uploadData, *uploadDataSize) == false) {
-        		// markieren, dass nicht mehr request handler aufgerufen wird;
-        		requestContext.connection.sendQueue();
-        	}
-        	*uploadDataSize = 0;
+			if(requestContext.requestHandler->process(uploadData, *uploadDataSize) == false) {
+				// markieren, dass nicht mehr request handler aufgerufen wird;
+				requestContext.connection.sendQueue();
+			}
+			*uploadDataSize = 0;
 
-            if(requestContext.connection.hasResponseSent()) {
-            	return true;
-            }
+			if(requestContext.connection.hasResponseSent()) {
+				return true;
+			}
 
-            logger.debug << "(2) lastCall = " << (lastCall ? "true" : "false") << std::endl;
-            return !lastCall;
-        }
+			logger.debug << "(2) lastCall = " << (lastCall ? "true" : "false") << std::endl;
+			return !lastCall;
+		}
 
-        requestContext.requestHandler.reset(new InternalRequestHandler(requestContext.connection, 404, PAGE_404));
-        return true;
+		requestContext.requestHandler.reset(new InternalRequestHandler(requestContext.connection, 404, PAGE_404));
+		return true;
 
-    }
-    catch (const std::exception& e) {
-    	logger.error << e.what() << std::endl;
+	}
+	catch (const std::exception& e) {
+		logger.error << e.what() << std::endl;
 
-    	const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
-    	if(stacktrace) {
-    		stacktrace->dump(logger.error);
-    	}
-    }
-    catch (...) {
-    	logger.error << "unknown exception" << std::endl;
-    }
+		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		if(stacktrace) {
+			stacktrace->dump(logger.error);
+		}
+	}
+	catch (...) {
+		logger.error << "unknown exception" << std::endl;
+	}
 
-    // wenn wir hier landen, hat es einen internen Fehler gegeben
-    requestContext.requestHandler.reset(new InternalRequestHandler(requestContext.connection, 500, PAGE_500));
-    return true;
+	// wenn wir hier landen, hat es einen internen Fehler gegeben
+	requestContext.requestHandler.reset(new InternalRequestHandler(requestContext.connection, 500, PAGE_500));
+	return true;
 }
 
 } /* namespace mhd4esl */

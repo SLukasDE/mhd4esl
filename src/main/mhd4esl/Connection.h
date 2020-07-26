@@ -21,8 +21,9 @@
 
 #include <mhd4esl/Request.h>
 //#include <mhd4esl/RequestContext.h>
-#include <mhd4esl/Logger.h>
+
 #include <esl/http/server/Connection.h>
+
 #include <string>
 #include <vector>
 #include <functional>
@@ -36,7 +37,6 @@ class Socket;
 
 class Connection : public esl::http::server::Connection {
 friend class Socket;
-static Logger logger;
 public:
 	Connection(MHD_Connection& mhdConnection);
 	~Connection();

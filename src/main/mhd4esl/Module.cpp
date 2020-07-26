@@ -41,17 +41,13 @@ public:
 typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
 Module* modulePtr = nullptr;
 
-std::unique_ptr<esl::http::server::Interface::Socket> createSocket(uint16_t port, uint16_t numThreads, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler) {
-	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, numThreads, createRequestHandler));
-}
-
 Module::Module()
 : esl::module::Module()
 {
 	esl::module::Module::initialize(*this);
 
 	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::server::Interface(
-			getId(), "mhd4esl", &createSocket)));
+			getId(), Socket::getImplementation(), &Socket::create)));
 }
 
 } /* anonymous namespace */

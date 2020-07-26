@@ -72,9 +72,9 @@ private:
 	const std::string url;
 
 
-    std::string acceptHeader;
-    std::string contentTypeHeader;
-    std::string contentEncodingHeader;
+	std::string acceptHeader;
+	std::string contentTypeHeader;
+	std::string contentEncodingHeader;
 
 	mutable std::map<std::string, std::string> arguments;
 };

@@ -17,6 +17,7 @@
  */
 
 #include <mhd4esl/Connection.h>
+#include <mhd4esl/Logger.h>
 
 #include <esl/http/server/ResponseBasicAuth.h>
 #include <esl/http/server/ResponseDynamic.h>
@@ -32,7 +33,9 @@
 
 namespace mhd4esl {
 
-Logger Connection::logger("mhd4esl::Connection");
+namespace {
+Logger logger("mhd4esl::Connection");
+}
 
 Connection::Connection(MHD_Connection& mhdConnection)
 : esl::http::server::Connection(),
@@ -89,7 +92,7 @@ bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseDynamic
 		MHD_add_response_header(mhdResponse, header.first.c_str(), header.second.c_str());
 	}
 
-	unsigned short httpStatus = resposePtr->getHttpStatus();
+	unsigned short httpStatus = resposePtr->getStatusCode();
 	std::function<bool()> sendFunc = [this, httpStatus, mhdResponse]() {
 	    return MHD_queue_response(&mhdConnection, httpStatus, mhdResponse) == MHD_YES;
 	};
@@ -121,7 +124,7 @@ bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseFile> r
 		MHD_add_response_header(mhdResponse, header.first.c_str(), header.second.c_str());
 	}
 
-	unsigned short httpStatus = response->getHttpStatus();
+	unsigned short httpStatus = response->getStatusCode();
 	std::function<bool()> sendFunc = [this, httpStatus, mhdResponse]() {
 	    return MHD_queue_response(&mhdConnection, httpStatus, mhdResponse) == MHD_YES;
 	};
@@ -145,7 +148,7 @@ bool Connection::sendResponse(std::unique_ptr<esl::http::server::ResponseStatic>
 		MHD_add_response_header(mhdResponse, header.first.c_str(), header.second.c_str());
 	}
 
-	unsigned short httpStatus = response->getHttpStatus();
+	unsigned short httpStatus = response->getStatusCode();
 	std::function<bool()> sendFunc = [this, httpStatus, mhdResponse]() {
 	    return MHD_queue_response(&mhdConnection, httpStatus, mhdResponse) == MHD_YES;
 	};
