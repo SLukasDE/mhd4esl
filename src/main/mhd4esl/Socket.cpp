@@ -205,18 +205,18 @@ mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& values) {
-	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, createRequestHandler, values));
+std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& settings) {
+	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, createRequestHandler, settings));
 }
 
-Socket::Socket(uint16_t aPort, esl::http::server::requesthandler::Interface::CreateRequestHandler aCreateRequestHandler, const esl::object::Values<std::string>& values)
+Socket::Socket(std::uint16_t aPort, esl::http::server::requesthandler::Interface::CreateRequestHandler aCreateRequestHandler, const esl::object::Values<std::string>& settings)
 : esl::http::server::Interface::Socket(),
   port(aPort),
 //  numThreads(aNumThreads),
   createRequestHandler(aCreateRequestHandler)
 {
-	if(values.hasValue("threads")) {
-		uint16_t threads = static_cast<uint16_t>(std::stoi(values.getValue("threads")));
+	if(settings.hasValue("threads")) {
+		uint16_t threads = static_cast<uint16_t>(std::stoi(settings.getValue("threads")));
 	    if(threads > 0) {
 	    	numThreads = threads;
 	    }
