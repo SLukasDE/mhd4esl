@@ -17,11 +17,17 @@
  */
 
 #include <mhd4esl/Request.h>
+
 #include <esl/Stacktrace.h>
+#include <esl/utility/String.h>
+
 #include <microhttpd.h>
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
 #include <cstdlib>
+#include <cstring>
 
 namespace mhd4esl {
 
@@ -34,12 +40,9 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
   method(aMethod),
   url(aUrl)
 {
-    const char* hostStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Host");
-    if(hostStr) {
-    	host = hostStr;
-    }
-
 	const MHD_ConnectionInfo* connectionInfo = MHD_get_connection_info(&mhdConnection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
+
+	MHD_get_connection_values(&mhdConnection, MHD_HEADER_KIND, readHeaders, this);
 
 	if(connectionInfo != nullptr) {
 		char strBuffer[INET6_ADDRSTRLEN];
@@ -78,24 +81,6 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
 		password = tmpPassword;
 		std::free(tmpPassword);
     }
-
-    const char* acceptHeaderStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Accept");
-    if(acceptHeaderStr) {
-        acceptHeader = std::string(acceptHeaderStr);
-    }
-
-    const char* contentTypeHeaderStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Content-Type");
-    if(contentTypeHeaderStr) {
-        contentTypeHeader = std::string(contentTypeHeaderStr);
-    }
-
-    // e.g. Content-Encoding: gzip
-    std::string contentEncodingHeader;
-    const char* contentEncodingHeaderStr = MHD_lookup_connection_value(&mhdConnection, MHD_HEADER_KIND, "Content-Encoding");
-    if(contentEncodingHeaderStr) {
-        contentEncodingHeader = std::string(contentEncodingHeaderStr);
-    }
-
 }
 
 bool Request::isHTTPS() const noexcept {
@@ -134,6 +119,14 @@ const std::string& Request::getMethod() const noexcept {
 	return method;
 }
 
+const std::map<std::string, std::string>& Request::getHeaders() const noexcept {
+	return headers;
+}
+
+const esl::utility::MIME& Request::getContentType() const noexcept {
+	return contentType;
+}
+
 bool Request::hasArgument(const std::string& key) const noexcept {
 	auto iter = arguments.find(key);
 	if(iter == arguments.end()) {
@@ -159,6 +152,36 @@ const std::string& Request::getRemoteAddress() const noexcept {
 
 uint16_t Request::getRemotePort() const noexcept {
 	return remotePort;
+}
+
+int Request::readHeaders(void* requestPtr, MHD_ValueKind, const char* key, const char* valuePtr) {
+	Request& request = *reinterpret_cast<Request*>(requestPtr);
+
+	std::string& value = request.headers[key];
+	if(valuePtr) {
+		value = valuePtr;
+
+		if(std::strncmp(key, "Host", 4) == 0) {
+			request.host = value;
+		}
+		else if(std::strncmp(key, "Content-Type", 12) == 0) {
+			// Value could be "text/html; charset=UTF-8", so we have to split for ';' character and we take first element
+			std::vector<std::string> contentTypes = esl::utility::String::split(esl::utility::String::trim(value), ';');
+			if(!contentTypes.empty()) {
+				request.contentType = esl::utility::MIME(esl::utility::String::trim(contentTypes.front()));
+			}
+		}
+		/*
+		else if(key == "Content-Encoding") {
+			request.contentEncodingHeader = value;
+		}
+		else if(key == "Accept") {
+			request.acceptHeader = value;
+		}
+		*/
+	}
+
+	return MHD_YES;
 }
 
 } /* namespace mhd4esl */

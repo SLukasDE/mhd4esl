@@ -39,6 +39,12 @@ class RequestContext;
 
 class Socket : public esl::http::server::Interface::Socket {
 public:
+	static inline const char* getImplementation() {
+		return "mhd4esl";
+	}
+
+	static std::unique_ptr<esl::http::server::Interface::Socket> create(uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& settings);
+
 	Socket(std::uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& settings);
 	~Socket();
 
@@ -50,12 +56,6 @@ public:
 	void release() override;
 
 	GetObject getObject(const std::string& id) const;
-
-	static inline const char* getImplementation() {
-		return "mhd4esl";
-	}
-
-	static std::unique_ptr<esl::http::server::Interface::Socket> create(uint16_t port, esl::http::server::requesthandler::Interface::CreateRequestHandler createRequestHandler, const esl::object::Values<std::string>& settings);
 
 private:
 	static int mhdAcceptHandler(void* cls,

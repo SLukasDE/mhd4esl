@@ -20,11 +20,14 @@
 #define MHD4ESL_REQUEST_H_
 
 #include <esl/http/server/Request.h>
+#include <esl/utility/MIME.h>
 
 #include <string>
 #include <map>
 #include <memory>
 #include <cstdint>
+
+#include <microhttpd.h>
 
 struct MHD_Connection;
 
@@ -49,11 +52,15 @@ public:
 
 	const std::string& getPath() const noexcept override;
 	const std::string& getMethod() const noexcept override;
+	const std::map<std::string, std::string>& getHeaders() const noexcept override;
+	const esl::utility::MIME& getContentType() const noexcept override;
 	bool hasArgument(const std::string& key) const noexcept override;
 	const std::string& getArgument(const std::string& key) const override;
 
 
 private:
+	static int readHeaders(void* requestPtr, MHD_ValueKind kind, const char* key, const char* value);
+
 	MHD_Connection& mhdConnection;
 
 	bool isHttps;
@@ -72,9 +79,11 @@ private:
 	const std::string url;
 
 
-	std::string acceptHeader;
-	std::string contentTypeHeader;
-	std::string contentEncodingHeader;
+	esl::utility::MIME contentType;
+	std::map<std::string, std::string> headers;
+
+	// std::string acceptHeader;
+	// std::string contentEncodingHeader;
 
 	mutable std::map<std::string, std::string> arguments;
 };
