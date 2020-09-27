@@ -39,7 +39,7 @@ const std::string& RequestContext::getPath() const {
 	return request.getPath();
 }
 
-esl::object::Interface::Object* RequestContext::getObject(const std::string& id) const {
+esl::object::Interface::Object* RequestContext::findObject(const std::string& id) const {
 	esl::http::server::Interface::Socket::GetObject getObject = socket.getObject(id);
 	if(getObject) {
 		return getObject(*this);
