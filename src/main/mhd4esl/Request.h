@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019, 2020 Sven Lukas
+ * Copyright (C) 2019-2021 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -43,7 +43,7 @@ public:
 	const std::string& getUsername() const noexcept override;
 	const std::string& getPassword() const noexcept override;
 
-	const std::string& getHost() const noexcept override;
+	const std::string& getHostName() const noexcept override;
 	const std::string& getHostAddress() const noexcept override;
 	uint16_t getHostPort() const noexcept override;
 
@@ -68,7 +68,7 @@ private:
 	std::string username;
 	std::string password;
 
-	std::string host;
+	std::string hostName;
 	const uint16_t hostPort;
 	std::string hostAddress;
 

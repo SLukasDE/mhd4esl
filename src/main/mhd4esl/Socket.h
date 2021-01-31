@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019, 2020 Sven Lukas
+ * Copyright (C) 2019-2021 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -50,12 +50,11 @@ public:
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
-	void setObject(const std::string& id, GetObject getObject) override;
+	void addObjectFactory(const std::string& id, ObjectFactory objectFactory) override;
+	ObjectFactory getObjectFactory(const std::string& id) const;
 
 	bool listen() override;
 	void release() override;
-
-	GetObject getObject(const std::string& id) const;
 
 private:
 	static int mhdAcceptHandler(void* cls,
@@ -77,7 +76,7 @@ private:
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;
-	std::map<std::string, GetObject> objects;
+	std::map<std::string, ObjectFactory> objectFactories;
 };
 
 } /* namespace mhd4esl */

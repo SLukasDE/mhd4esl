@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019, 2020 Sven Lukas
+ * Copyright (C) 2019-2021 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -40,9 +40,9 @@ const std::string& RequestContext::getPath() const {
 }
 
 esl::object::Interface::Object* RequestContext::findObject(const std::string& id) const {
-	esl::http::server::Interface::Socket::GetObject getObject = socket.getObject(id);
-	if(getObject) {
-		return getObject(*this);
+	esl::http::server::Interface::Socket::ObjectFactory objectFactory = socket.getObjectFactory(id);
+	if(objectFactory) {
+		return objectFactory(*this);
 	}
 	return nullptr;
 }

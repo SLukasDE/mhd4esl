@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019, 2020 Sven Lukas
+ * Copyright (C) 2019-2021 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -268,12 +268,20 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
-void Socket::setObject(const std::string& id, Socket::GetObject getObject) {
+void Socket::addObjectFactory(const std::string& id, Socket::ObjectFactory objectFactory) {
 	if (daemonPtr != nullptr) {
-		throw esl::addStacktrace(std::runtime_error("Calling Socket::setObjectById not allowed, because HTTP socket is already listening"));
+		throw esl::addStacktrace(std::runtime_error("Calling Socket::addObjectFactory not allowed, because HTTP socket is already listening"));
 	}
 
-	objects[id] = getObject;
+	objectFactories[id] = objectFactory;
+}
+
+Socket::ObjectFactory Socket::getObjectFactory(const std::string& id) const {
+	auto iter = objectFactories.find(id);
+	if(iter != std::end(objectFactories)) {
+		return iter->second;
+	}
+	return nullptr;
 }
 
 bool Socket::listen() {
@@ -307,15 +315,15 @@ bool Socket::listen() {
 				MHD_OPTION_END);
 	}
 	else {
-			daemonPtr = MHD_start_daemon(flags,
-					port,
-					0, 0, mhdAcceptHandler, this,
-					MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
-					// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
-					MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-					MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
-					MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
-					MHD_OPTION_END);
+		daemonPtr = MHD_start_daemon(flags,
+				port,
+				0, 0, mhdAcceptHandler, this,
+				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
+				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
+				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
+				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
+				MHD_OPTION_END);
 	}
 
 	if(daemonPtr == nullptr) {
@@ -336,14 +344,6 @@ void Socket::release() {
 	MHD_stop_daemon(static_cast<MHD_Daemon *>(daemonPtr));
 	daemonPtr = nullptr;
 	logger.debug << "HTTP socket released at port " << port << std::endl;
-}
-
-Socket::GetObject Socket::getObject(const std::string& id) const {
-	auto iter = objects.find(id);
-	if(iter != std::end(objects)) {
-		return iter->second;
-	}
-	return nullptr;
 }
 
 int Socket::mhdAcceptHandler(void* cls,

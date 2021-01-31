@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019, 2020 Sven Lukas
+ * Copyright (C) 2019-2021 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -99,8 +99,8 @@ const std::string& Request::getPassword() const noexcept {
 	return password;
 }
 
-const std::string& Request::getHost() const noexcept {
-	return host;
+const std::string& Request::getHostName() const noexcept {
+	return hostName;
 }
 
 const std::string& Request::getHostAddress() const noexcept {
@@ -162,7 +162,13 @@ int Request::readHeaders(void* requestPtr, MHD_ValueKind, const char* key, const
 		value = valuePtr;
 
 		if(std::strncmp(key, "Host", 4) == 0) {
-			request.host = value;
+			std::string::size_type pos = value.find_first_of(':');
+			if(pos == std::string::npos) {
+				request.hostName = value;
+			}
+			else {
+				request.hostName = value.substr(0, pos);
+			}
 		}
 		else if(std::strncmp(key, "Content-Type", 12) == 0) {
 			// Value could be "text/html; charset=UTF-8", so we have to split for ';' character and we take first element
