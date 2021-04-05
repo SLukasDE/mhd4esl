@@ -17,7 +17,7 @@
  */
 
 #include <mhd4esl/Module.h>
-#include <mhd4esl/Socket.h>
+#include <mhd4esl/http/server/Socket.h>
 
 #include <esl/http/server/Interface.h>
 #include <esl/http/server/requesthandler/Interface.h>
@@ -47,7 +47,7 @@ Module::Module()
 	esl::module::Module::initialize(*this);
 
 	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::http::server::Interface(
-			getId(), Socket::getImplementation(), &Socket::create)));
+			getId(), http::server::Socket::getImplementation(), &http::server::Socket::create)));
 }
 
 } /* anonymous namespace */

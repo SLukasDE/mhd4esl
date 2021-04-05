@@ -20,6 +20,7 @@
 #define MHD4ESL_MODULE_H_
 
 #include <esl/module/Module.h>
+
 #include <string>
 
 namespace mhd4esl {
