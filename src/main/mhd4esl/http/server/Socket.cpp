@@ -327,6 +327,10 @@ void Socket::release() {
 	logger.debug << "HTTP socket released at port " << port << std::endl;
 }
 
+bool Socket::wait(std::uint32_t ms) {
+	return true;
+}
+
 int Socket::mhdAcceptHandler(void* cls,
 		MHD_Connection* mhdConnection,
 		const char* url,

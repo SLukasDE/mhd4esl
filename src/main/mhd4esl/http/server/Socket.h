@@ -57,6 +57,7 @@ public:
 
 	void listen(esl::http::server::requesthandler::Interface::CreateInput createInput) override;
 	void release() override;
+	bool wait(std::uint32_t ms) override;
 
 private:
 	static int mhdAcceptHandler(void* cls,
