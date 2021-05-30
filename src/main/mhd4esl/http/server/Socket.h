@@ -45,9 +45,9 @@ public:
 		return "mhd4esl";
 	}
 
-	static std::unique_ptr<esl::http::server::Interface::Socket> create(uint16_t port, esl::http::server::requesthandler::Interface::CreateInput createInput, const esl::object::Values<std::string>& settings);
+	static std::unique_ptr<esl::http::server::Interface::Socket> create(uint16_t port, const esl::object::Values<std::string>& settings);
 
-	Socket(std::uint16_t port, esl::http::server::requesthandler::Interface::CreateInput createInput, const esl::object::Values<std::string>& settings);
+	Socket(std::uint16_t port, const esl::object::Values<std::string>& settings);
 	~Socket();
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
@@ -55,7 +55,7 @@ public:
 	void addObjectFactory(const std::string& id, ObjectFactory objectFactory) override;
 	ObjectFactory getObjectFactory(const std::string& id) const;
 
-	bool listen() override;
+	void listen(esl::http::server::requesthandler::Interface::CreateInput createInput) override;
 	void release() override;
 
 private:
@@ -74,7 +74,7 @@ private:
 
 	uint16_t port;
 	uint16_t numThreads = 4;
-	esl::http::server::requesthandler::Interface::CreateInput createInput;
+	esl::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;

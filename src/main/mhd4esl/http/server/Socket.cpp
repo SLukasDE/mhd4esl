@@ -33,6 +33,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <mutex>
 #include <map>
 
@@ -188,14 +189,13 @@ mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, esl::http::server::requesthandler::Interface::CreateInput createInput, const esl::object::Values<std::string>& settings) {
-	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, createInput, settings));
+std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, const esl::object::Values<std::string>& settings) {
+	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, settings));
 }
 
-Socket::Socket(std::uint16_t aPort, esl::http::server::requesthandler::Interface::CreateInput aCreateInput, const esl::object::Values<std::string>& settings)
+Socket::Socket(std::uint16_t aPort, const esl::object::Values<std::string>& settings)
 : esl::http::server::Interface::Socket(),
-  port(aPort),
-  createInput(aCreateInput)
+  port(aPort)
 {
 	if(settings.hasValue("threads")) {
 		uint16_t threads = static_cast<uint16_t>(std::stoi(settings.getValue("threads")));
@@ -266,10 +266,11 @@ Socket::ObjectFactory Socket::getObjectFactory(const std::string& id) const {
 	return nullptr;
 }
 
-bool Socket::listen() {
+void Socket::listen(esl::http::server::requesthandler::Interface::CreateInput aCreateInput) {
+	createInput = aCreateInput;
 	if (daemonPtr != nullptr) {
-		logger.debug << "HTTP socket already listening " << port << std::endl;
-		return true;
+		logger.warn << "HTTP socket (port=" << port << ") is already listening." << std::endl;
+		return;
 	}
 
 	usingTLS = !socketCerts[this].empty();
@@ -309,12 +310,10 @@ bool Socket::listen() {
 	}
 
 	if(daemonPtr == nullptr) {
-		logger.debug << "Couldn't start HTTP socket at port " << port << std::endl;
-		return false;
+		throw esl::addStacktrace(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(port) + ". Maybe there is already a socket listening on this port."));
 	}
 
 	logger.debug << "HTTP socket started at port " << port << std::endl;
-	return true;
 }
 
 void Socket::release() {
