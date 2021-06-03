@@ -16,17 +16,17 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MHD4ESL_HTTP_SERVER_REQUESTCONTEXT_H_
-#define MHD4ESL_HTTP_SERVER_REQUESTCONTEXT_H_
+#ifndef MHD4ESL_COM_HTTP_SERVER_REQUESTCONTEXT_H_
+#define MHD4ESL_COM_HTTP_SERVER_REQUESTCONTEXT_H_
 
-#include <esl/http/server/RequestContext.h>
-#include <esl/http/server/Connection.h>
-#include <esl/http/server/Request.h>
+#include <esl/com/http/server/RequestContext.h>
+#include <esl/com/http/server/Connection.h>
+#include <esl/com/http/server/Request.h>
 #include <esl/io/Input.h>
 #include <esl/object/Interface.h>
 
-#include <mhd4esl/http/server/Connection.h>
-#include <mhd4esl/http/server/Request.h>
+#include <mhd4esl/com/http/server/Connection.h>
+#include <mhd4esl/com/http/server/Request.h>
 
 #include <string>
 #include <memory>
@@ -35,18 +35,19 @@
 struct MHD_Connection;
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
 class Socket;
 
-class RequestContext : public esl::http::server::RequestContext {
+class RequestContext : public esl::com::http::server::RequestContext {
 	friend class Socket;
 public:
 	RequestContext(const Socket& socket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port);
 
-	esl::http::server::Connection& getConnection() const override;
-	const esl::http::server::Request& getRequest() const override;
+	esl::com::http::server::Connection& getConnection() const override;
+	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
 
 	esl::object::Interface::Object* findObject(const std::string& id) const override;
@@ -60,6 +61,7 @@ private:
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */
 
-#endif /* MHD4ESL_HTTP_SERVER_REQUESTCONTEXT_H_ */
+#endif /* MHD4ESL_COM_HTTP_SERVER_REQUESTCONTEXT_H_ */

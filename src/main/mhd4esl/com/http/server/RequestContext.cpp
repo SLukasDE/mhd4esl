@@ -16,25 +16,26 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/http/server/RequestContext.h>
-#include <mhd4esl/http/server/Socket.h>
+#include <mhd4esl/com/http/server/RequestContext.h>
+#include <mhd4esl/com/http/server/Socket.h>
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
 RequestContext::RequestContext(const Socket& aSocket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
-: esl::http::server::RequestContext(),
+: esl::com::http::server::RequestContext(),
   socket(aSocket),
   connection(mhdConnection),
   request(mhdConnection, version, method, url, isHTTPS, port)
 { }
 
-esl::http::server::Connection& RequestContext::getConnection() const {
+esl::com::http::server::Connection& RequestContext::getConnection() const {
 	return connection;
 }
 
-const esl::http::server::Request& RequestContext::getRequest() const {
+const esl::com::http::server::Request& RequestContext::getRequest() const {
 	return request;
 }
 
@@ -43,7 +44,7 @@ const std::string& RequestContext::getPath() const {
 }
 
 esl::object::Interface::Object* RequestContext::findObject(const std::string& id) const {
-	esl::http::server::Interface::Socket::ObjectFactory objectFactory = socket.getObjectFactory(id);
+	esl::com::http::server::Interface::Socket::ObjectFactory objectFactory = socket.getObjectFactory(id);
 	if(objectFactory) {
 		return objectFactory(*this);
 	}
@@ -52,4 +53,5 @@ esl::object::Interface::Object* RequestContext::findObject(const std::string& id
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */

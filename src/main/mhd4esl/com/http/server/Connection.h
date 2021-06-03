@@ -16,11 +16,11 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MHD4ESL_HTTP_SERVER_CONNECTION_H_
-#define MHD4ESL_HTTP_SERVER_CONNECTION_H_
+#ifndef MHD4ESL_COM_HTTP_SERVER_CONNECTION_H_
+#define MHD4ESL_COM_HTTP_SERVER_CONNECTION_H_
 
-#include <esl/http/server/Connection.h>
-#include <esl/http/server/Response.h>
+#include <esl/com/http/server/Connection.h>
+#include <esl/com/http/server/Response.h>
 #include <esl/io/Output.h>
 
 #include <boost/filesystem.hpp>
@@ -35,10 +35,11 @@ struct MHD_Connection;
 struct MHD_Response;
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
-class Connection : public esl::http::server::Connection {
+class Connection : public esl::com::http::server::Connection {
 friend class Socket;
 public:
 	Connection(MHD_Connection& mhdConnection);
@@ -48,12 +49,12 @@ public:
 	bool isResponseQueueEmpty() noexcept;
 	bool hasResponseSent() noexcept;
 
-	bool sendResponse(const esl::http::server::Response& response, const void* data, std::size_t size) noexcept;
-	bool sendResponse(const esl::http::server::Response& response, esl::io::Output output) noexcept override;
-	bool sendResponse(const esl::http::server::Response& response, boost::filesystem::path path) noexcept override;
+	bool send(const esl::com::http::server::Response& response, const void* data, std::size_t size) noexcept;
+	bool send(const esl::com::http::server::Response& response, esl::io::Output output) override;
+	bool send(const esl::com::http::server::Response& response, boost::filesystem::path path) override;
 
 private:
-	bool sendResponse(const esl::http::server::Response& response, MHD_Response* mhdResponse) noexcept;
+	bool sendResponse(const esl::com::http::server::Response& response, MHD_Response* mhdResponse) noexcept;
 
     static long int contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize);
     static void contentReaderFreeCallback(void* cls);
@@ -65,6 +66,7 @@ private:
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */
 
-#endif /* MHD4ESL_HTTP_SERVER_CONNECTION_H_ */
+#endif /* MHD4ESL_COM_HTTP_SERVER_CONNECTION_H_ */

@@ -16,7 +16,7 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/http/server/Request.h>
+#include <mhd4esl/com/http/server/Request.h>
 
 #include <esl/Stacktrace.h>
 #include <esl/utility/String.h>
@@ -30,6 +30,7 @@
 #include <cstring>
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
@@ -193,4 +194,5 @@ int Request::readHeaders(void* requestPtr, MHD_ValueKind, const char* key, const
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */

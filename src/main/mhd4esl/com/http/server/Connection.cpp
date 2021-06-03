@@ -16,7 +16,7 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/http/server/Connection.h>
+#include <mhd4esl/com/http/server/Connection.h>
 #include <mhd4esl/Logger.h>
 
 #include <esl/Stacktrace.h>
@@ -28,11 +28,12 @@
 #include <fcntl.h>
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
 namespace {
-Logger logger("mhd4esl::Connection");
+Logger logger("mhd4esl::com::http::Connection");
 }
 
 Connection::Connection(MHD_Connection& mhdConnection)
@@ -66,7 +67,7 @@ bool Connection::hasResponseSent() noexcept {
 	return responseSent;
 }
 
-bool Connection::sendResponse(const esl::http::server::Response& response, const void* data, std::size_t size) noexcept {
+bool Connection::send(const esl::com::http::server::Response& response, const void* data, std::size_t size) noexcept {
     if(!response.isValid()) {
     	return false;
     }
@@ -76,25 +77,19 @@ bool Connection::sendResponse(const esl::http::server::Response& response, const
     return sendResponse(response, mhdResponse);
 }
 
-bool Connection::sendResponse(const esl::http::server::Response& response, esl::io::Output output) noexcept {
+bool Connection::send(const esl::com::http::server::Response& response, esl::io::Output output) {
 	if(!response.isValid()) {
 		logger.error << "MHD: invalid response object\n";
 		return false;
 	}
 
-	if(output) {
-logger.error << "MHD: output object is valid\n";
-	}
-	else {
-logger.error << "MHD: empty output object\n";
-	}
 	esl::io::Output* outputPtr = new esl::io::Output(std::move(output));
 	MHD_Response* mhdResponse = MHD_create_response_from_callback(-1, 8192, contentReaderCallback, outputPtr, contentReaderFreeCallback);
 
 	return sendResponse(response, mhdResponse);
 }
 
-bool Connection::sendResponse(const esl::http::server::Response& response, boost::filesystem::path path) noexcept {
+bool Connection::send(const esl::com::http::server::Response& response, boost::filesystem::path path) {
     if(!response.isValid()) {
     	return false;
     }
@@ -111,7 +106,7 @@ bool Connection::sendResponse(const esl::http::server::Response& response, boost
     return sendResponse(response, mhdResponse);
 }
 
-bool Connection::sendResponse(const esl::http::server::Response& response, MHD_Response* mhdResponse) noexcept {
+bool Connection::sendResponse(const esl::com::http::server::Response& response, MHD_Response* mhdResponse) noexcept {
 	if(mhdResponse == nullptr) {
 		logger.warn << "- mhdResponse == nullptr\n";
 		return false;
@@ -152,11 +147,9 @@ long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted,
     try {
         std::size_t size = outputPtr->getReader().read(buffer, bufferSize);
     	if(size == esl::io::Reader::npos) {
-logger.error << "MHD: output object reader returned npos\n";
             return MHD_CONTENT_READER_END_OF_STREAM;
         }
 
-logger.error << "MHD: output object reader returned " << size << "\n";
         return size;
     }
     catch (std::exception& e) {
@@ -187,4 +180,5 @@ void Connection::contentReaderFreeCallback(void* cls) {
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */

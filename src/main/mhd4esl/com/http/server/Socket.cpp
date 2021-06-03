@@ -16,9 +16,9 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/http/server/Socket.h>
-#include <mhd4esl/http/server/RequestContext.h>
-#include <mhd4esl/http/server/Connection.h>
+#include <mhd4esl/com/http/server/Socket.h>
+#include <mhd4esl/com/http/server/RequestContext.h>
+#include <mhd4esl/com/http/server/Connection.h>
 #include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
 
@@ -39,11 +39,12 @@
 
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
 namespace {
-Logger logger("mhd4esl::http::server::Socket");
+Logger logger("mhd4esl::com::http::server::Socket");
 
 const std::string PAGE_404(
 		"<!DOCTYPE html>\n"
@@ -189,12 +190,12 @@ mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::http::server::Interface::Socket> Socket::create(uint16_t port, const esl::object::Values<std::string>& settings) {
-	return std::unique_ptr<esl::http::server::Interface::Socket>(new Socket(port, settings));
+std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(uint16_t port, const esl::object::Values<std::string>& settings) {
+	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(port, settings));
 }
 
 Socket::Socket(std::uint16_t aPort, const esl::object::Values<std::string>& settings)
-: esl::http::server::Interface::Socket(),
+: esl::com::http::server::Interface::Socket(),
   port(aPort)
 {
 	if(settings.hasValue("threads")) {
@@ -266,7 +267,7 @@ Socket::ObjectFactory Socket::getObjectFactory(const std::string& id) const {
 	return nullptr;
 }
 
-void Socket::listen(esl::http::server::requesthandler::Interface::CreateInput aCreateInput) {
+void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInput aCreateInput) {
 	createInput = aCreateInput;
 	if (daemonPtr != nullptr) {
 		logger.warn << "HTTP socket (port=" << port << ") is already listening." << std::endl;
@@ -395,8 +396,8 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 
 			if(requestContext.connection.isResponseQueueEmpty()) {
 				logger.debug << "Nothing in response queue -> push 404 page into respone queue\n";
-				esl::http::server::Response response(404, esl::utility::MIME::textHtml);
-				requestContext.connection.sendResponse(response, PAGE_404.data(), PAGE_404.size());
+				esl::com::http::server::Response response(404, esl::utility::MIME::textHtml);
+				requestContext.connection.send(response, PAGE_404.data(), PAGE_404.size());
 			}
 
 			// send response queue, so this method will not be called again
@@ -447,8 +448,8 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 
 	// wenn wir hier landen, hat es einen internen Fehler gegeben
 	if(requestContext.connection.isResponseQueueEmpty()) {
-		esl::http::server::Response response(500, esl::utility::MIME::textHtml);
-		requestContext.connection.sendResponse(response, PAGE_500.data(), PAGE_500.size());
+		esl::com::http::server::Response response(500, esl::utility::MIME::textHtml);
+		requestContext.connection.send(response, PAGE_500.data(), PAGE_500.size());
 	}
 
 	// send response queue, so this method will not be called again
@@ -461,4 +462,5 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */

@@ -16,12 +16,12 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MHD4ESL_HTTP_SERVER_SOCKET_H_
-#define MHD4ESL_HTTP_SERVER_SOCKET_H_
+#ifndef MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
+#define MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
 
-#include <esl/http/server/requesthandler/Interface.h>
-#include <esl/http/server/Interface.h>
-#include <esl/http/server/Request.h>
+#include <esl/com/http/server/requesthandler/Interface.h>
+#include <esl/com/http/server/Interface.h>
+#include <esl/com/http/server/Request.h>
 #include <esl/object/Values.h>
 
 #include <cstdint>
@@ -34,18 +34,19 @@
 struct MHD_Connection;
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
 class RequestContext;
 
-class Socket : public esl::http::server::Interface::Socket {
+class Socket : public esl::com::http::server::Interface::Socket {
 public:
 	static inline const char* getImplementation() {
 		return "mhd4esl";
 	}
 
-	static std::unique_ptr<esl::http::server::Interface::Socket> create(uint16_t port, const esl::object::Values<std::string>& settings);
+	static std::unique_ptr<esl::com::http::server::Interface::Socket> create(uint16_t port, const esl::object::Values<std::string>& settings);
 
 	Socket(std::uint16_t port, const esl::object::Values<std::string>& settings);
 	~Socket();
@@ -55,7 +56,7 @@ public:
 	void addObjectFactory(const std::string& id, ObjectFactory objectFactory) override;
 	ObjectFactory getObjectFactory(const std::string& id) const;
 
-	void listen(esl::http::server::requesthandler::Interface::CreateInput createInput) override;
+	void listen(esl::com::http::server::requesthandler::Interface::CreateInput createInput) override;
 	void release() override;
 	bool wait(std::uint32_t ms) override;
 
@@ -75,7 +76,7 @@ private:
 
 	uint16_t port;
 	uint16_t numThreads = 4;
-	esl::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
+	esl::com::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;
@@ -84,6 +85,7 @@ private:
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */
 
-#endif /* MHD4ESL_HTTP_SERVER_SOCKET_H_ */
+#endif /* MHD4ESL_COM_HTTP_SERVER_SOCKET_H_ */

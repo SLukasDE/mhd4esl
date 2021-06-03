@@ -16,10 +16,10 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MHD4ESL_HTTP_SERVER_REQUEST_H_
-#define MHD4ESL_HTTP_SERVER_REQUEST_H_
+#ifndef MHD4ESL_COM_HTTP_SERVER_REQUEST_H_
+#define MHD4ESL_COM_HTTP_SERVER_REQUEST_H_
 
-#include <esl/http/server/Request.h>
+#include <esl/com/http/server/Request.h>
 #include <esl/utility/MIME.h>
 
 #include <string>
@@ -32,10 +32,11 @@
 struct MHD_Connection;
 
 namespace mhd4esl {
+namespace com {
 namespace http {
 namespace server {
 
-class Request : public esl::http::server::Request {
+class Request : public esl::com::http::server::Request {
 public:
 	Request(MHD_Connection& mhdConnection, const char* httpVersion, const char* method, const char* url, bool isHttps, uint16_t hostPort);
 	~Request() = default;
@@ -92,6 +93,7 @@ private:
 
 } /* namespace server */
 } /* namespace http */
+} /* namespace com */
 } /* namespace mhd4esl */
 
-#endif /* MHD4ESL_HTTP_SERVER_REQUEST_H_ */
+#endif /* MHD4ESL_COM_HTTP_SERVER_REQUEST_H_ */
