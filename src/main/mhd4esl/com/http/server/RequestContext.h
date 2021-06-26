@@ -50,6 +50,7 @@ public:
 	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
 
+protected:
 	esl::object::Interface::Object* findObject(const std::string& id) const override;
 
 private:

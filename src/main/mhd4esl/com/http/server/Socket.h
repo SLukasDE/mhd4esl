@@ -46,9 +46,9 @@ public:
 		return "mhd4esl";
 	}
 
-	static std::unique_ptr<esl::com::http::server::Interface::Socket> create(uint16_t port, const esl::object::Values<std::string>& settings);
+	static std::unique_ptr<esl::com::http::server::Interface::Socket> create(const esl::com::http::server::Interface::Settings& settings);
 
-	Socket(std::uint16_t port, const esl::object::Values<std::string>& settings);
+	Socket(const esl::com::http::server::Interface::Settings& settings);
 	~Socket();
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
@@ -74,7 +74,7 @@ private:
 	void accessThreadInc() noexcept {}
 	void accessThreadDec() noexcept {}
 
-	uint16_t port;
+	uint16_t port = 0;
 	uint16_t numThreads = 4;
 	esl::com::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
 

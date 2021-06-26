@@ -190,19 +190,31 @@ mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(uint16_t port, const esl::object::Values<std::string>& settings) {
-	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(port, settings));
+std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const esl::com::http::server::Interface::Settings& settings) {
+	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(settings));
 }
 
-Socket::Socket(std::uint16_t aPort, const esl::object::Values<std::string>& settings)
-: esl::com::http::server::Interface::Socket(),
-  port(aPort)
-{
-	if(settings.hasValue("threads")) {
-		uint16_t threads = static_cast<uint16_t>(std::stoi(settings.getValue("threads")));
-	    if(threads > 0) {
-	    	numThreads = threads;
-	    }
+Socket::Socket(const esl::com::http::server::Interface::Settings& settings) {
+	bool hasPort = false;
+
+	for(const auto& setting : settings) {
+		if(setting.first == "threads") {
+			numThreads = static_cast<uint16_t>(std::stoi(setting.second));
+		    if(numThreads <= 0) {
+		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+		}
+		else if(setting.first == "port") {
+			hasPort = true;
+			port = static_cast<uint16_t>(std::stoi(setting.second));
+		    if(port <= 0) {
+		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+		}
+	}
+
+	if(!hasPort) {
+    	throw esl::addStacktrace(std::runtime_error("Parameter \"port\" is missing"));
 	}
 
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
@@ -359,7 +371,6 @@ int Socket::mhdAcceptHandler(void* cls,
 			(*requestContext)->input = socket->createInput(**requestContext);
 			if((*requestContext)->input) {
 				if(*uploadDataSize == 0) {
-					logger.debug << "uploadData=" << (void*) uploadData << "\n";
 					return MHD_YES;
 				}
 			}

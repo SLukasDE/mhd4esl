@@ -46,8 +46,9 @@ Module::Module()
 {
 	esl::module::Module::initialize(*this);
 
-	addInterface(std::unique_ptr<const esl::module::Interface>(new esl::com::http::server::Interface(
-			getId(), com::http::server::Socket::getImplementation(), &com::http::server::Socket::create)));
+	addInterface(esl::com::http::server::Interface::createInterface(
+			com::http::server::Socket::getImplementation(),
+			&com::http::server::Socket::create));
 }
 
 } /* anonymous namespace */
