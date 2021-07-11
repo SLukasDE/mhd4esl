@@ -20,50 +20,16 @@
 #include <mhd4esl/com/http/server/Socket.h>
 
 #include <esl/com/http/server/Interface.h>
-#include <esl/com/http/server/requesthandler/Interface.h>
-#include <esl/module/Interface.h>
-#include <esl/Stacktrace.h>
-
-#include <stdexcept>
-#include <memory>
-#include <new>         // placement new
-#include <type_traits> // aligned_storage
+#include <esl/Module.h>
 
 namespace mhd4esl {
 
-namespace {
+void Module::install(esl::module::Module& module) {
+	esl::setModule(module);
 
-class Module : public esl::module::Module {
-public:
-	Module();
-};
-
-typename std::aligned_storage<sizeof(Module), alignof(Module)>::type moduleBuffer; // memory for the object;
-Module* modulePtr = nullptr;
-
-Module::Module()
-: esl::module::Module()
-{
-	esl::module::Module::initialize(*this);
-
-	addInterface(esl::com::http::server::Interface::createInterface(
+	module.addInterface(esl::com::http::server::Interface::createInterface(
 			com::http::server::Socket::getImplementation(),
 			&com::http::server::Socket::create));
-}
-
-} /* anonymous namespace */
-
-esl::module::Module& getModule() {
-	if(modulePtr == nullptr) {
-		/* ***************** *
-		 * initialize module *
-		 * ***************** */
-
-		modulePtr = reinterpret_cast<Module*> (&moduleBuffer);
-		new (modulePtr) Module; // placement new
-	}
-
-	return *modulePtr;
 }
 
 } /* namespace mhd4esl */
