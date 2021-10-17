@@ -74,8 +74,13 @@ private:
 	void accessThreadInc() noexcept {}
 	void accessThreadDec() noexcept {}
 
-	uint16_t port = 0;
-	uint16_t numThreads = 4;
+	struct Settings {
+		uint16_t port = 0;
+		uint16_t numThreads = 4;
+		unsigned int connectionTimeout = 120;
+		unsigned int connectionLimit = 1000;
+		unsigned int perIpConnectionLimit = 0;
+	} settings;
 	esl::com::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*

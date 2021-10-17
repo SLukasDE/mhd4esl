@@ -194,20 +194,38 @@ std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const 
 	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(settings));
 }
 
-Socket::Socket(const esl::com::http::server::Interface::Settings& settings) {
+Socket::Socket(const esl::com::http::server::Interface::Settings& aSettings) {
 	bool hasPort = false;
 
-	for(const auto& setting : settings) {
+	for(const auto& setting : aSettings) {
 		if(setting.first == "threads") {
-			numThreads = static_cast<uint16_t>(std::stoi(setting.second));
-		    if(numThreads <= 0) {
+			settings.numThreads = static_cast<uint16_t>(std::stoi(setting.second));
+		    if(settings.numThreads <= 0) {
 		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "port") {
 			hasPort = true;
-			port = static_cast<uint16_t>(std::stoi(setting.second));
-		    if(port <= 0) {
+			settings.port = static_cast<uint16_t>(std::stoi(setting.second));
+		    if(settings.port <= 0) {
+		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+		}
+		else if(setting.first == "connectionTimeout") {
+			settings.connectionTimeout = static_cast<unsigned int>(std::stoi(setting.second));
+		    if(settings.connectionTimeout <= 0) {
+		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+		}
+		else if(setting.first == "connectionLimit") {
+			settings.connectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
+		    if(settings.connectionLimit <= 0) {
+		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+		}
+		else if(setting.first == "perIpConnectionLimit") {
+			settings.perIpConnectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
+		    if(settings.perIpConnectionLimit <= 0) {
 		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
@@ -223,7 +241,7 @@ Socket::Socket(const esl::com::http::server::Interface::Settings& settings) {
 
 Socket::~Socket() {
 	if (daemonPtr != nullptr) {
-		logger.debug << "Stopping HTTP socket at port " << port << std::endl;
+		logger.debug << "Stopping HTTP socket at port " << settings.port << std::endl;
 		MHD_Daemon* d = static_cast<MHD_Daemon*>(daemonPtr);
 		MHD_stop_daemon (d);
 		daemonPtr = nullptr;
@@ -234,6 +252,7 @@ Socket::~Socket() {
 }
 
 void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
+	logger.trace << "Installing certificate and key for hostname \"" << hostname << "\"\n";
 	if (daemonPtr != nullptr) {
 		throw esl::addStacktrace(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
 	}
@@ -282,7 +301,7 @@ Socket::ObjectFactory Socket::getObjectFactory(const std::string& id) const {
 void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInput aCreateInput) {
 	createInput = aCreateInput;
 	if (daemonPtr != nullptr) {
-		logger.warn << "HTTP socket (port=" << port << ") is already listening." << std::endl;
+		logger.warn << "HTTP socket (port=" << settings.port << ") is already listening." << std::endl;
 		return;
 	}
 
@@ -298,46 +317,72 @@ void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInp
     flags |= MHD_USE_DEBUG;
 #endif
 
+#if 1
+	if(usingTLS) {
+	    flags |= MHD_USE_SSL;
+
+		daemonPtr = MHD_start_daemon(flags, settings.port, 0, 0, mhdAcceptHandler, this,
+				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
+				MHD_OPTION_HTTPS_CERT_CALLBACK, &mhdSniCallback,
+
+				MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) settings.perIpConnectionLimit,
+				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) settings.connectionTimeout,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
+				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) settings.connectionLimit,
+				MHD_OPTION_END);
+	}
+	else {
+		daemonPtr = MHD_start_daemon(flags, settings.port, 0, 0, mhdAcceptHandler, this,
+				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
+
+				MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) settings.perIpConnectionLimit,
+				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) settings.connectionTimeout,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
+				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) settings.connectionLimit,
+				MHD_OPTION_END);
+	}
+#else
 	if(usingTLS) {
 		daemonPtr = MHD_start_daemon(flags | MHD_USE_SSL,
-				port,
+				settings.port,
 				0, 0, mhdAcceptHandler, this,
 				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
 				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
 				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
 				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
 				MHD_OPTION_HTTPS_CERT_CALLBACK, &mhdSniCallback,
 				MHD_OPTION_END);
 	}
 	else {
 		daemonPtr = MHD_start_daemon(flags,
-				port,
+				settings.port,
 				0, 0, mhdAcceptHandler, this,
 				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
 				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
 				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) numThreads,
+				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
 				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
 				MHD_OPTION_END);
 	}
+#endif
 
 	if(daemonPtr == nullptr) {
-		throw esl::addStacktrace(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(port) + ". Maybe there is already a socket listening on this port."));
+		throw esl::addStacktrace(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port."));
 	}
 
-	logger.debug << "HTTP socket started at port " << port << std::endl;
+	logger.debug << "HTTP socket started at port " << settings.port << std::endl;
 }
 
 void Socket::release() {
 	if (daemonPtr == nullptr) {
-		logger.debug << "HTTP socket already released " << port << std::endl;
+		logger.debug << "HTTP socket already released " << settings.port << std::endl;
 		return;
 	}
 
 	MHD_stop_daemon(static_cast<MHD_Daemon *>(daemonPtr));
 	daemonPtr = nullptr;
-	logger.debug << "HTTP socket released at port " << port << std::endl;
+	logger.debug << "HTTP socket released at port " << settings.port << std::endl;
 }
 
 bool Socket::wait(std::uint32_t ms) {
@@ -367,7 +412,7 @@ int Socket::mhdAcceptHandler(void* cls,
 	RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
 	if(*requestContext == nullptr) {
 		try {
-			*requestContext = new RequestContext(*socket, *mhdConnection, version, method, url, socket->usingTLS, socket->port);
+			*requestContext = new RequestContext(*socket, *mhdConnection, version, method, url, socket->usingTLS, socket->settings.port);
 			(*requestContext)->input = socket->createInput(**requestContext);
 			if((*requestContext)->input) {
 				if(*uploadDataSize == 0) {
