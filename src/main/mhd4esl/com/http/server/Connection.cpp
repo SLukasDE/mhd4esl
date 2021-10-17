@@ -68,21 +68,12 @@ bool Connection::hasResponseSent() noexcept {
 }
 
 bool Connection::send(const esl::com::http::server::Response& response, const void* data, std::size_t size) noexcept {
-    if(!response.isValid()) {
-    	return false;
-    }
-
     MHD_Response* mhdResponse = MHD_create_response_from_buffer(size, const_cast<void*>(data), MHD_RESPMEM_PERSISTENT);
 
     return sendResponse(response, mhdResponse);
 }
 
 bool Connection::send(const esl::com::http::server::Response& response, esl::io::Output output) {
-	if(!response.isValid()) {
-		logger.error << "MHD: invalid response object\n";
-		return false;
-	}
-
 	esl::io::Output* outputPtr = new esl::io::Output(std::move(output));
 	MHD_Response* mhdResponse = MHD_create_response_from_callback(-1, 8192, contentReaderCallback, outputPtr, contentReaderFreeCallback);
 
@@ -90,10 +81,6 @@ bool Connection::send(const esl::com::http::server::Response& response, esl::io:
 }
 
 bool Connection::send(const esl::com::http::server::Response& response, boost::filesystem::path path) {
-    if(!response.isValid()) {
-    	return false;
-    }
-
     int fd = open(path.generic_string().c_str(), O_RDONLY);
     if(fd < 0) {
         return false;
