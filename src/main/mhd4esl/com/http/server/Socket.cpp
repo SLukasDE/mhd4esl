@@ -25,18 +25,17 @@
 #include <esl/module/Module.h>
 #include <esl/io/Writer.h>
 #include <esl/Stacktrace.h>
+#include <esl/object/ObjectContext.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/abstract.h>
 
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <mutex>
 #include <map>
-
 
 namespace mhd4esl {
 namespace com {
@@ -75,11 +74,10 @@ void mhdRequestCompletedHandler(void* cls,
 	RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
 
     if(*requestContext == nullptr) {
-        logger.debug << "Complete with NULL\n";
+        logger.error << "Request completed, but there is no RequestContext to delete\n";
         return;
     }
 
-    logger.debug << "Complete with Request\n";
     delete *requestContext;
     *requestContext = nullptr;
 }
@@ -109,81 +107,75 @@ bool hasMatchingHostname(const std::string& hostname, const std::string& hostnam
 	return hostname == hostnamePattern;
 }
 
-int
-mhdSniCallback(gnutls_session_t session,
-              const gnutls_datum_t* req_ca_dn,
-              int nreqs,
-              const gnutls_pk_algorithm_t* pk_algos,
-              int pk_algos_length,
-              gnutls_pcert_st** pcert,
-              unsigned int *pcert_length,
-              gnutls_privkey_t * pkey)
+int mhdSniCallback(gnutls_session_t session,
+		const gnutls_datum_t*, int,
+		const gnutls_pk_algorithm_t* pk_algos, int pk_algos_length,
+		gnutls_pcert_st** pcert, unsigned int *pcertLength, gnutls_privkey_t * pkey)
 {
 	std::string hostname;
 	logger.info << "Certificate requested.\n";
 
 	{
 		char name[256];
-		size_t name_len = sizeof (name);
+		size_t nameLength = 255;
 		unsigned int type;
 
-		if(GNUTLS_E_SUCCESS == gnutls_server_name_get(session, name, &name_len, &type, 0 /* index */)) {
+		switch(gnutls_server_name_get(session, name, &nameLength, &type, 0)) {
+		case GNUTLS_E_SHORT_MEMORY_BUFFER:
+			logger.warn << "Length to retrieve SNI server name is too big. " << nameLength << " bytes are required.\n";
+			return -1;
+		case GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE:
+			logger.warn << "Cannot get SNI server name at index 0.\n";
+			return -1;
+		case GNUTLS_E_SUCCESS:
 			hostname = name;
-		}
-		else {
-			logger.warn << "Failed to get hostname.\n";
-//			return -1;
+			break;
+		default:
+			logger.warn << "Failed to get SNI server name.\n";
+			return -1;
 		}
 	}
 
-	logger.info << "Certificate for hostname \"" << hostname << "\" requested.\n";
+	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
 
-	Cert* foundCert = nullptr;
-	std::string foundHostname;
-	bool done = false;
-
-    std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
+	logger.trace << "Search certificate for hostname \"" << hostname << "\".\n";
+	const std::string* foundHostname = nullptr;
 
 	for(auto& certs : socketCerts) {
 		for(auto& cert : certs.second) {
-			logger.debug << "Check certificate for hostname \"" << cert.first << "\".\n";
+			logger.trace << "Check certificate for hostname \"" << cert.first << "\".\n";
 			if(!hasMatchingHostname(hostname, cert.first)) {
-				logger.debug << "Wrong certificate.\n";
+				logger.trace << "Certificate for hostname \"" << cert.first << "\" does not match\n";
 				continue;
 			}
-			logger.debug << "Certificate found.\n";
 
 			if(!cert.first.empty() && cert.first.at(0) != '*') {
-				done = true;
+				logger.trace << "Certificate for hostname \"" << cert.first << "\" is a perfect match\n";
+				foundHostname = &cert.first;
+				*pkey = cert.second.key;
+				*pcertLength = 1;
+				*pcert = &cert.second.pcrt;
+				return 0;
 			}
-			else if(cert.first.size() < foundHostname.size()) {
+			else if(foundHostname != nullptr && cert.first.size() < foundHostname->size()) {
+				logger.trace << "Skip certificate for hostname \"" << cert.first << "\" because better match has been found already.\n";
 				continue;
 			}
 
-			foundCert = &(cert.second);
-			foundHostname = cert.first;
-
-			if(done) {
-				break;
-			}
-		}
-
-		if(done) {
-			break;
+			logger.trace << "Use certificate for hostname \"" << cert.first << "\"\n";
+			foundHostname = &cert.first;
+			*pkey = cert.second.key;
+			*pcertLength = 1;
+			*pcert = &cert.second.pcrt;
 		}
 	}
 
-	if(foundCert == nullptr) {
-		logger.info << "No certificate found for hostname=\"" << hostname << "\"\n";
+	if(foundHostname == nullptr) {
+		logger.warn << "No certificate found for hostname=\"" << hostname << "\"\n";
 		return -1;
 	}
 
-	logger.info << "Certificate found for hostname \"" << foundHostname << "\".\n";
-
-	*pkey = foundCert->key;
-	*pcert_length = 1;
-	*pcert = &foundCert->pcrt;
-
+	logger.trace << "Certificate found for hostname \"" << *foundHostname << "\".\n";
 	return 0;
 }
 
@@ -282,28 +274,12 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
-void Socket::addObjectFactory(const std::string& id, Socket::ObjectFactory objectFactory) {
+void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
 	if (daemonPtr != nullptr) {
-		throw esl::addStacktrace(std::runtime_error("Calling Socket::addObjectFactory not allowed, because HTTP socket is already listening"));
+		throw std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening.");
 	}
 
-	objectFactories[id] = objectFactory;
-}
-
-Socket::ObjectFactory Socket::getObjectFactory(const std::string& id) const {
-	auto iter = objectFactories.find(id);
-	if(iter != std::end(objectFactories)) {
-		return iter->second;
-	}
-	return nullptr;
-}
-
-void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInput aCreateInput) {
-	createInput = aCreateInput;
-	if (daemonPtr != nullptr) {
-		logger.warn << "HTTP socket (port=" << settings.port << ") is already listening." << std::endl;
-		return;
-	}
+	requestHandler = &aRequestHandler;
 
 	usingTLS = !socketCerts[this].empty();
 	unsigned int flags = MHD_USE_SELECT_INTERNALLY;
@@ -317,10 +293,10 @@ void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInp
     flags |= MHD_USE_DEBUG;
 #endif
 
-#if 1
 	if(usingTLS) {
+		std::lock_guard<std::mutex> lock(waitNotifyMutex);
+
 	    flags |= MHD_USE_SSL;
-
 		daemonPtr = MHD_start_daemon(flags, settings.port, 0, 0, mhdAcceptHandler, this,
 				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
 				MHD_OPTION_HTTPS_CERT_CALLBACK, &mhdSniCallback,
@@ -332,6 +308,8 @@ void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInp
 				MHD_OPTION_END);
 	}
 	else {
+		std::lock_guard<std::mutex> lock(waitNotifyMutex);
+
 		daemonPtr = MHD_start_daemon(flags, settings.port, 0, 0, mhdAcceptHandler, this,
 				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
 
@@ -341,36 +319,14 @@ void Socket::listen(esl::com::http::server::requesthandler::Interface::CreateInp
 				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) settings.connectionLimit,
 				MHD_OPTION_END);
 	}
-#else
-	if(usingTLS) {
-		daemonPtr = MHD_start_daemon(flags | MHD_USE_SSL,
-				settings.port,
-				0, 0, mhdAcceptHandler, this,
-				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
-				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
-				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
-				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
-				MHD_OPTION_HTTPS_CERT_CALLBACK, &mhdSniCallback,
-				MHD_OPTION_END);
-	}
-	else {
-		daemonPtr = MHD_start_daemon(flags,
-				settings.port,
-				0, 0, mhdAcceptHandler, this,
-				MHD_OPTION_NOTIFY_COMPLETED, &mhdRequestCompletedHandler, nullptr,
-				// MHD_OPTION_PER_IP_CONNECTION_LIMIT, 2,
-				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 120,
-				MHD_OPTION_THREAD_POOL_SIZE, (unsigned int) settings.numThreads,
-				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 1000,
-				MHD_OPTION_END);
-	}
-#endif
+
+	waitCondVar.notify_all();
 
 	if(daemonPtr == nullptr) {
-		throw esl::addStacktrace(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port."));
+		throw std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port.");
 	}
 
+	onReleasedHandler = aOnReleasedHandler;
 	logger.debug << "HTTP socket started at port " << settings.port << std::endl;
 }
 
@@ -380,13 +336,33 @@ void Socket::release() {
 		return;
 	}
 
+	logger.debug << "Releasing HTTP socket at port " << settings.port << " ..." << std::endl;
 	MHD_stop_daemon(static_cast<MHD_Daemon *>(daemonPtr));
-	daemonPtr = nullptr;
+	{
+		std::lock_guard<std::mutex> lock(waitNotifyMutex);
+		daemonPtr = nullptr;
+    }
 	logger.debug << "HTTP socket released at port " << settings.port << std::endl;
+	if(onReleasedHandler) {
+		onReleasedHandler();
+	}
+	waitCondVar.notify_all();
 }
 
 bool Socket::wait(std::uint32_t ms) {
-	return true;
+	std::unique_lock<std::mutex> waitNotifyLock(waitNotifyMutex);
+
+	if(ms == 0) {
+		waitCondVar.wait(waitNotifyLock, [this] {
+				return daemonPtr == nullptr;
+		});
+		return true;
+	}
+	else {
+		return waitCondVar.wait_for(waitNotifyLock, std::chrono::milliseconds(ms), [this] {
+				return daemonPtr == nullptr;
+		});
+	}
 }
 
 int Socket::mhdAcceptHandler(void* cls,
@@ -412,22 +388,20 @@ int Socket::mhdAcceptHandler(void* cls,
 	RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
 	if(*requestContext == nullptr) {
 		try {
-			*requestContext = new RequestContext(*socket, *mhdConnection, version, method, url, socket->usingTLS, socket->settings.port);
-			(*requestContext)->input = socket->createInput(**requestContext);
-			if((*requestContext)->input) {
-				if(*uploadDataSize == 0) {
-					return MHD_YES;
-				}
-			}
-			else {
-				logger.debug << "Failed to create input\n";
+			esl::object::ObjectContext objectContext;
+			*requestContext = new RequestContext(*mhdConnection, version, method, url, socket->usingTLS, socket->settings.port);
+			(*requestContext)->input = socket->requestHandler->accept(**requestContext, objectContext);
+
+			if((*requestContext)->input &&*uploadDataSize == 0) {
+				return MHD_YES;
 			}
 		}
 		catch (const std::exception& e) {
-			logger.error << e.what() << std::endl;
+			logger.error << "std::exception::what(): " << e.what() << std::endl;
 
 			const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
 			if(stacktrace) {
+				logger.error << "Stacktrace:\n";
 				stacktrace->dump(logger.error);
 			}
 			return MHD_NO;
@@ -439,7 +413,7 @@ int Socket::mhdAcceptHandler(void* cls,
 	}
 
 	socket->accessThreadInc();
-	bool rv = socket->accept(**requestContext, uploadData, uploadDataSize);
+	bool rv = accept(**requestContext, uploadData, uploadDataSize);
 	socket->accessThreadDec();
 	return rv ? MHD_YES : MHD_NO;
 }

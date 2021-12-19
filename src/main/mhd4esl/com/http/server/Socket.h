@@ -23,13 +23,15 @@
 #include <esl/com/http/server/Interface.h>
 #include <esl/com/http/server/Request.h>
 #include <esl/object/Values.h>
+#include <esl/object/Interface.h>
 
 #include <cstdint>
 #include <string.h> // size_t
 #include <string>
 #include <vector>
 #include <memory>
-#include <map>
+#include <condition_variable>
+#include <mutex>
 
 struct MHD_Connection;
 
@@ -53,10 +55,7 @@ public:
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
-	void addObjectFactory(const std::string& id, ObjectFactory objectFactory) override;
-	ObjectFactory getObjectFactory(const std::string& id) const;
-
-	void listen(esl::com::http::server::requesthandler::Interface::CreateInput createInput) override;
+	void listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
 	void release() override;
 	bool wait(std::uint32_t ms) override;
 
@@ -69,7 +68,7 @@ private:
 	        const char* uploadData,
 	        size_t* uploadDataSize,
 	        void** connectionSpecificDataPtr) noexcept;
-	bool accept(RequestContext& requestContext, const char* uploadData, size_t* uploadDataSize) noexcept;
+	static bool accept(RequestContext& requestContext, const char* uploadData, size_t* uploadDataSize) noexcept;
 
 	void accessThreadInc() noexcept {}
 	void accessThreadDec() noexcept {}
@@ -81,11 +80,18 @@ private:
 		unsigned int connectionLimit = 1000;
 		unsigned int perIpConnectionLimit = 0;
 	} settings;
-	esl::com::http::server::requesthandler::Interface::CreateInput createInput = nullptr;
+	const esl::com::http::server::requesthandler::Interface::RequestHandler* requestHandler = nullptr;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;
-	std::map<std::string, ObjectFactory> objectFactories;
+	std::function<void()> onReleasedHandler = nullptr;
+
+
+	/* ****************** *
+	 * wait method *
+	 * ****************** */
+	std::mutex waitNotifyMutex;
+	std::condition_variable waitCondVar;
 };
 
 } /* namespace server */

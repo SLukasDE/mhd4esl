@@ -24,9 +24,8 @@ namespace com {
 namespace http {
 namespace server {
 
-RequestContext::RequestContext(const Socket& aSocket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
+RequestContext::RequestContext(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
 : esl::com::http::server::RequestContext(),
-  socket(aSocket),
   connection(mhdConnection),
   request(mhdConnection, version, method, url, isHTTPS, port)
 { }
@@ -41,14 +40,6 @@ const esl::com::http::server::Request& RequestContext::getRequest() const {
 
 const std::string& RequestContext::getPath() const {
 	return request.getPath();
-}
-
-esl::object::Interface::Object* RequestContext::findObject(const std::string& id) const {
-	esl::com::http::server::Interface::Socket::ObjectFactory objectFactory = socket.getObjectFactory(id);
-	if(objectFactory) {
-		return objectFactory(*this);
-	}
-	return nullptr;
 }
 
 } /* namespace server */

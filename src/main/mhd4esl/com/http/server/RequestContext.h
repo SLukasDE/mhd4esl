@@ -19,14 +19,14 @@
 #ifndef MHD4ESL_COM_HTTP_SERVER_REQUESTCONTEXT_H_
 #define MHD4ESL_COM_HTTP_SERVER_REQUESTCONTEXT_H_
 
+#include <mhd4esl/com/http/server/Connection.h>
+#include <mhd4esl/com/http/server/Request.h>
+
 #include <esl/com/http/server/RequestContext.h>
 #include <esl/com/http/server/Connection.h>
 #include <esl/com/http/server/Request.h>
 #include <esl/io/Input.h>
 #include <esl/object/Interface.h>
-
-#include <mhd4esl/com/http/server/Connection.h>
-#include <mhd4esl/com/http/server/Request.h>
 
 #include <string>
 #include <memory>
@@ -39,22 +39,16 @@ namespace com {
 namespace http {
 namespace server {
 
-class Socket;
-
 class RequestContext : public esl::com::http::server::RequestContext {
 	friend class Socket;
 public:
-	RequestContext(const Socket& socket, MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port);
+	RequestContext(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port);
 
 	esl::com::http::server::Connection& getConnection() const override;
 	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
 
-protected:
-	esl::object::Interface::Object* findObject(const std::string& id) const override;
-
 private:
-	const Socket& socket;
 	mutable Connection connection;
 	Request request;
 	esl::io::Input input;
