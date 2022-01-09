@@ -42,6 +42,10 @@ const std::string& RequestContext::getPath() const {
 	return request.getPath();
 }
 
+esl::object::Interface::ObjectContext& RequestContext::getObjectContext() {
+	return objectContext;
+}
+
 } /* namespace server */
 } /* namespace http */
 } /* namespace com */

@@ -25,7 +25,6 @@
 #include <esl/module/Module.h>
 #include <esl/io/Writer.h>
 #include <esl/Stacktrace.h>
-#include <esl/object/ObjectContext.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
@@ -388,9 +387,8 @@ int Socket::mhdAcceptHandler(void* cls,
 	RequestContext** requestContext = reinterpret_cast<RequestContext**>(connectionSpecificDataPtr);
 	if(*requestContext == nullptr) {
 		try {
-			esl::object::ObjectContext objectContext;
 			*requestContext = new RequestContext(*mhdConnection, version, method, url, socket->usingTLS, socket->settings.port);
-			(*requestContext)->input = socket->requestHandler->accept(**requestContext, objectContext);
+			(*requestContext)->input = socket->requestHandler->accept(**requestContext);
 
 			if((*requestContext)->input &&*uploadDataSize == 0) {
 				return MHD_YES;

@@ -27,6 +27,7 @@
 #include <esl/com/http/server/Request.h>
 #include <esl/io/Input.h>
 #include <esl/object/Interface.h>
+#include <esl/object/ObjectContext.h>
 
 #include <string>
 #include <memory>
@@ -47,11 +48,13 @@ public:
 	esl::com::http::server::Connection& getConnection() const override;
 	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
+	esl::object::Interface::ObjectContext& getObjectContext() override;
 
 private:
 	mutable Connection connection;
 	Request request;
 	esl::io::Input input;
+	esl::object::ObjectContext objectContext;
 };
 
 } /* namespace server */
