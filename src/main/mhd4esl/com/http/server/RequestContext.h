@@ -21,6 +21,7 @@
 
 #include <mhd4esl/com/http/server/Connection.h>
 #include <mhd4esl/com/http/server/Request.h>
+#include <mhd4esl/com/http/server/ObjectContext.h>
 
 #include <esl/com/http/server/RequestContext.h>
 #include <esl/com/http/server/Connection.h>
@@ -48,13 +49,13 @@ public:
 	esl::com::http::server::Connection& getConnection() const override;
 	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
-	esl::object::Interface::ObjectContext& getObjectContext() override;
+	esl::object::ObjectContext& getObjectContext() override;
 
 private:
 	mutable Connection connection;
 	Request request;
 	esl::io::Input input;
-	esl::object::ObjectContext objectContext;
+	ObjectContext objectContext;
 };
 
 } /* namespace server */

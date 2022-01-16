@@ -16,37 +16,35 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/com/http/server/RequestContext.h>
-#include <mhd4esl/com/http/server/Socket.h>
+#ifndef MHD4ESL_COM_HTTP_SERVER_OBJECTCONTEXT_H_
+#define MHD4ESL_COM_HTTP_SERVER_OBJECTCONTEXT_H_
+
+#include <esl/object/Interface.h>
+#include <esl/object/ObjectContext.h>
+
+#include <string>
+#include <map>
+#include <memory>
 
 namespace mhd4esl {
 namespace com {
 namespace http {
 namespace server {
 
-RequestContext::RequestContext(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
-: esl::com::http::server::RequestContext(),
-  connection(mhdConnection),
-  request(mhdConnection, version, method, url, isHTTPS, port)
-{ }
+class ObjectContext final : public esl::object::ObjectContext {
+public:
+	void addObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) override;
 
-esl::com::http::server::Connection& RequestContext::getConnection() const {
-	return connection;
-}
+protected:
+	esl::object::Interface::Object* findRawObject(const std::string& id) const override;
 
-const esl::com::http::server::Request& RequestContext::getRequest() const {
-	return request;
-}
-
-const std::string& RequestContext::getPath() const {
-	return request.getPath();
-}
-
-esl::object::ObjectContext& RequestContext::getObjectContext() {
-	return objectContext;
-}
+private:
+	std::map<std::string, std::unique_ptr<esl::object::Interface::Object>> objects;
+};
 
 } /* namespace server */
 } /* namespace http */
 } /* namespace com */
 } /* namespace mhd4esl */
+
+#endif /* MHD4ESL_COM_HTTP_SERVER_OBJECTCONTEXT_H_ */

@@ -16,34 +16,20 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/com/http/server/RequestContext.h>
-#include <mhd4esl/com/http/server/Socket.h>
+#include <mhd4esl/com/http/server/ObjectContext.h>
 
 namespace mhd4esl {
 namespace com {
 namespace http {
 namespace server {
 
-RequestContext::RequestContext(MHD_Connection& mhdConnection, const char* version, const char* method, const char* url, bool isHTTPS, uint16_t port)
-: esl::com::http::server::RequestContext(),
-  connection(mhdConnection),
-  request(mhdConnection, version, method, url, isHTTPS, port)
-{ }
-
-esl::com::http::server::Connection& RequestContext::getConnection() const {
-	return connection;
+void ObjectContext::addObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) {
+	objects[id] = std::move(object);
 }
 
-const esl::com::http::server::Request& RequestContext::getRequest() const {
-	return request;
-}
-
-const std::string& RequestContext::getPath() const {
-	return request.getPath();
-}
-
-esl::object::ObjectContext& RequestContext::getObjectContext() {
-	return objectContext;
+esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& id) const {
+	auto iter = objects.find(id);
+	return iter == std::end(objects) ? nullptr : iter->second.get();
 }
 
 } /* namespace server */
