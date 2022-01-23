@@ -104,20 +104,11 @@ bool Connection::sendResponse(const esl::com::http::server::Response& response, 
 	}
 
 	std::function<bool()> sendFunc;
-	if(response.getStatusCode() == 401) {
-	    std::string realmId = response.getRealmId();
+	unsigned short httpStatusCode = response.getStatusCode();
 
-		sendFunc = [this, mhdResponse, realmId]() {
-		    return MHD_queue_basic_auth_fail_response(&mhdConnection, realmId.c_str(), mhdResponse) == MHD_YES;
-		};
-	}
-	else {
-		unsigned short httpStatusCode = response.getStatusCode();
-
-		sendFunc = [this, httpStatusCode, mhdResponse]() {
-		    return MHD_queue_response(&mhdConnection, httpStatusCode, mhdResponse) == MHD_YES;
-		};
-	}
+	sendFunc = [this, httpStatusCode, mhdResponse]() {
+	    return MHD_queue_response(&mhdConnection, httpStatusCode, mhdResponse) == MHD_YES;
+	};
 
 	responseQueue.push_back(std::make_tuple(sendFunc, mhdResponse));
 

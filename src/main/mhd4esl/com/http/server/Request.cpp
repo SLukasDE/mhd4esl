@@ -68,21 +68,6 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
 
 		remotePort = static_cast<uint16_t>(reinterpret_cast<sockaddr_in const*>(connectionInfo->client_addr)->sin_port);
 	}
-
-	char* tmpPassword = nullptr;
-	char* tmpUsername = nullptr;
-
-	tmpUsername = MHD_basic_auth_get_username_password(&mhdConnection, &tmpPassword);
-
-	if(tmpUsername != nullptr) {
-		username = tmpUsername;
-		std::free(tmpUsername);
-	}
-
-	if(tmpPassword != nullptr) {
-		password = tmpPassword;
-		std::free(tmpPassword);
-    }
 }
 
 bool Request::isHTTPS() const noexcept {
@@ -91,14 +76,6 @@ bool Request::isHTTPS() const noexcept {
 
 const std::string& Request::getHTTPVersion() const noexcept {
 	return httpVersion;
-}
-
-const std::string& Request::getUsername() const noexcept {
-	return username;
-}
-
-const std::string& Request::getPassword() const noexcept {
-	return password;
 }
 
 const std::string& Request::getHostName() const noexcept {

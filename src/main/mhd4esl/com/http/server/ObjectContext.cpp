@@ -27,7 +27,12 @@ void ObjectContext::addObject(const std::string& id, std::unique_ptr<esl::object
 	objects[id] = std::move(object);
 }
 
-esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& id) const {
+esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& id) {
+	auto iter = objects.find(id);
+	return iter == std::end(objects) ? nullptr : iter->second.get();
+}
+
+const esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& id) const {
 	auto iter = objects.find(id);
 	return iter == std::end(objects) ? nullptr : iter->second.get();
 }

@@ -36,7 +36,8 @@ public:
 	void addObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) override;
 
 protected:
-	esl::object::Interface::Object* findRawObject(const std::string& id) const override;
+	esl::object::Interface::Object* findRawObject(const std::string& id) override;
+	const esl::object::Interface::Object* findRawObject(const std::string& id) const override;
 
 private:
 	std::map<std::string, std::unique_ptr<esl::object::Interface::Object>> objects;

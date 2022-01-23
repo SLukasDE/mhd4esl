@@ -43,8 +43,6 @@ public:
 
 	bool isHTTPS() const noexcept override;
 	const std::string& getHTTPVersion() const noexcept override;
-	const std::string& getUsername() const noexcept override;
-	const std::string& getPassword() const noexcept override;
 
 	const std::string& getHostName() const noexcept override;
 	const std::string& getHostAddress() const noexcept override;
@@ -68,8 +66,6 @@ private:
 
 	bool isHttps;
 	const std::string httpVersion;
-	std::string username;
-	std::string password;
 
 	std::string hostName;
 	const uint16_t hostPort;
