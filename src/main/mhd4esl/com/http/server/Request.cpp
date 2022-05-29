@@ -18,7 +18,7 @@
 
 #include <mhd4esl/com/http/server/Request.h>
 
-#include <esl/Stacktrace.h>
+#include <esl/stacktrace/Stacktrace.h>
 #include <esl/utility/String.h>
 
 #include <microhttpd.h>
@@ -120,7 +120,7 @@ bool Request::hasArgument(const std::string& key) const noexcept {
 
 const std::string& Request::getArgument(const std::string& key) const {
 	if(!hasArgument(key)) {
-		throw esl::addStacktrace(std::runtime_error("argument \"" + key + "\" no found"));
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("argument \"" + key + "\" no found"));
 	}
 	return arguments[key];
 }

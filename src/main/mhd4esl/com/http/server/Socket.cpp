@@ -24,17 +24,18 @@
 
 #include <esl/module/Module.h>
 #include <esl/io/Writer.h>
-#include <esl/Stacktrace.h>
+#include <esl/stacktrace/Stacktrace.h>
+#include <esl/utility/Event.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
 #include <gnutls/abstract.h>
 
 #include <fstream>
-#include <memory>
-#include <stdexcept>
-#include <mutex>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <stdexcept>
 
 namespace mhd4esl {
 namespace com {
@@ -181,49 +182,52 @@ int mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const esl::com::http::server::Interface::Settings& settings) {
+std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(settings));
 }
 
-Socket::Socket(const esl::com::http::server::Interface::Settings& aSettings) {
+Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings) {
 	bool hasPort = false;
 
 	for(const auto& setting : aSettings) {
 		if(setting.first == "threads") {
 			settings.numThreads = static_cast<uint16_t>(std::stoi(setting.second));
 		    if(settings.numThreads <= 0) {
-		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "port") {
 			hasPort = true;
 			settings.port = static_cast<uint16_t>(std::stoi(setting.second));
 		    if(settings.port <= 0) {
-		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connectionTimeout") {
 			settings.connectionTimeout = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.connectionTimeout <= 0) {
-		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connectionLimit") {
 			settings.connectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.connectionLimit <= 0) {
-		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "perIpConnectionLimit") {
 			settings.perIpConnectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.perIpConnectionLimit <= 0) {
-		    	throw esl::addStacktrace(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
+		}
+		else {
+            throw esl::stacktrace::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
 		}
 	}
 
 	if(!hasPort) {
-    	throw esl::addStacktrace(std::runtime_error("Parameter \"port\" is missing"));
+    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Parameter \"port\" is missing"));
 	}
 
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
@@ -245,7 +249,7 @@ Socket::~Socket() {
 void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
 	logger.trace << "Installing certificate and key for hostname \"" << hostname << "\"\n";
 	if (daemonPtr != nullptr) {
-		throw esl::addStacktrace(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
 	}
 
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
@@ -259,7 +263,7 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	rc = gnutls_pcert_import_x509_raw(&cert.pcrt, &gnutls_datum, GNUTLS_X509_FMT_PEM, 0);
 	if(rc < 0) {
 		logger.error << "Error installing certificate: " << gnutls_strerror (rc) << "\n";
-		throw esl::addStacktrace(std::runtime_error("Error installing certificate: " + std::string(gnutls_strerror (rc))));
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Error installing certificate: " + std::string(gnutls_strerror (rc))));
 	}
 
 	gnutls_datum.data = &key[0];
@@ -268,12 +272,12 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	rc = gnutls_privkey_import_x509_raw(cert.key, &gnutls_datum, GNUTLS_X509_FMT_PEM, nullptr, 0);
 	if(rc < 0) {
 		logger.error << "Error installing key: " << gnutls_strerror (rc) << "\n";
-		throw esl::addStacktrace(std::runtime_error("Error installing key"));
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Error installing key"));
 	}
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
-void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
+void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, esl::object::Event* aEventHandler) {
 	if (daemonPtr != nullptr) {
 		throw std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening.");
 	}
@@ -325,7 +329,7 @@ void Socket::listen(const esl::com::http::server::requesthandler::Interface::Req
 		throw std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port.");
 	}
 
-	onReleasedHandler = aOnReleasedHandler;
+	eventHandler = aEventHandler;
 	logger.debug << "HTTP socket started at port " << settings.port << std::endl;
 }
 
@@ -342,8 +346,9 @@ void Socket::release() {
 		daemonPtr = nullptr;
     }
 	logger.debug << "HTTP socket released at port " << settings.port << std::endl;
-	if(onReleasedHandler) {
-		onReleasedHandler();
+	if(eventHandler) {
+		esl::utility::Event event(esl::utility::Event::stopped, *this);
+		eventHandler->onEvent(event);
 	}
 	waitCondVar.notify_all();
 }
@@ -397,7 +402,7 @@ int Socket::mhdAcceptHandler(void* cls,
 		catch (const std::exception& e) {
 			logger.error << "std::exception::what(): " << e.what() << std::endl;
 
-			const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+			const esl::stacktrace::Stacktrace* stacktrace = esl::stacktrace::Stacktrace::get(e);
 			if(stacktrace) {
 				logger.error << "Stacktrace:\n";
 				stacktrace->dump(logger.error);
@@ -424,7 +429,7 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 
 			if(requestContext.connection.isResponseQueueEmpty()) {
 				logger.debug << "Nothing in response queue -> push 404 page into respone queue\n";
-				esl::com::http::server::Response response(404, esl::utility::MIME::textHtml);
+				esl::com::http::server::Response response(404, esl::utility::MIME::Type::textHtml);
 				requestContext.connection.send(response, PAGE_404.data(), PAGE_404.size());
 			}
 
@@ -465,7 +470,7 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 	catch (const std::exception& e) {
 		logger.error << e.what() << std::endl;
 
-		const esl::Stacktrace* stacktrace = esl::getStacktrace(e);
+		const esl::stacktrace::Stacktrace* stacktrace = esl::stacktrace::Stacktrace::get(e);
 		if(stacktrace) {
 			stacktrace->dump(logger.error);
 		}
@@ -476,7 +481,7 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 
 	// wenn wir hier landen, hat es einen internen Fehler gegeben
 	if(requestContext.connection.isResponseQueueEmpty()) {
-		esl::com::http::server::Response response(500, esl::utility::MIME::textHtml);
+		esl::com::http::server::Response response(500, esl::utility::MIME::Type::textHtml);
 		requestContext.connection.send(response, PAGE_500.data(), PAGE_500.size());
 	}
 

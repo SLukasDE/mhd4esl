@@ -22,9 +22,10 @@
 #include <esl/object/Interface.h>
 #include <esl/object/ObjectContext.h>
 
-#include <string>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 
 namespace mhd4esl {
 namespace com {
@@ -34,6 +35,7 @@ namespace server {
 class ObjectContext final : public esl::object::ObjectContext {
 public:
 	void addObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) override;
+	std::set<std::string> getObjectIds() const override;
 
 protected:
 	esl::object::Interface::Object* findRawObject(const std::string& id) override;
