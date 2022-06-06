@@ -25,7 +25,6 @@
 #include <esl/module/Module.h>
 #include <esl/io/Writer.h>
 #include <esl/stacktrace/Stacktrace.h>
-#include <esl/utility/Event.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
@@ -203,19 +202,19 @@ Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
-		else if(setting.first == "connectionTimeout") {
+		else if(setting.first == "connection-timeout") {
 			settings.connectionTimeout = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.connectionTimeout <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
-		else if(setting.first == "connectionLimit") {
+		else if(setting.first == "connection-limit") {
 			settings.connectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.connectionLimit <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
-		else if(setting.first == "perIpConnectionLimit") {
+		else if(setting.first == "per-ip-connection-limit") {
 			settings.perIpConnectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
 		    if(settings.perIpConnectionLimit <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
@@ -277,7 +276,7 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
-void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, esl::object::Event* aEventHandler) {
+void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
 	if (daemonPtr != nullptr) {
 		throw std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening.");
 	}
@@ -329,7 +328,7 @@ void Socket::listen(const esl::com::http::server::requesthandler::Interface::Req
 		throw std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port.");
 	}
 
-	eventHandler = aEventHandler;
+	onReleasedHandler = aOnReleasedHandler;
 	logger.debug << "HTTP socket started at port " << settings.port << std::endl;
 }
 
@@ -346,9 +345,8 @@ void Socket::release() {
 		daemonPtr = nullptr;
     }
 	logger.debug << "HTTP socket released at port " << settings.port << std::endl;
-	if(eventHandler) {
-		esl::utility::Event event(esl::utility::Event::stopped, *this);
-		eventHandler->onEvent(event);
+	if(onReleasedHandler) {
+		onReleasedHandler();
 	}
 	waitCondVar.notify_all();
 }

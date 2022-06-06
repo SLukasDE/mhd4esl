@@ -23,10 +23,6 @@ namespace com {
 namespace http {
 namespace server {
 
-void ObjectContext::addObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) {
-	objects[id] = std::move(object);
-}
-
 std::set<std::string> ObjectContext::getObjectIds() const {
 	std::set<std::string> rv;
 
@@ -45,6 +41,10 @@ esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& 
 const esl::object::Interface::Object* ObjectContext::findRawObject(const std::string& id) const {
 	auto iter = objects.find(id);
 	return iter == std::end(objects) ? nullptr : iter->second.get();
+}
+
+void ObjectContext::addRawObject(const std::string& id, std::unique_ptr<esl::object::Interface::Object> object) {
+	objects[id] = std::move(object);
 }
 
 } /* namespace server */

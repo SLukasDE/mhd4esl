@@ -23,10 +23,10 @@
 #include <esl/com/http/server/Interface.h>
 #include <esl/com/http/server/Request.h>
 #include <esl/object/Interface.h>
-#include <esl/object/Event.h>
 
 #include <condition_variable>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <string.h> // size_t
@@ -56,7 +56,7 @@ public:
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
-	void listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& requestHandler, esl::object::Event* eventHandler) override;
+	void listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
 	void release() override;
 
 	bool wait(std::uint32_t ms);
@@ -86,7 +86,7 @@ private:
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;
-	esl::object::Event* eventHandler = nullptr;
+	std::function<void()> onReleasedHandler;
 
 
 	/* ****************** *
