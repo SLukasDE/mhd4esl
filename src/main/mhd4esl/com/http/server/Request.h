@@ -21,6 +21,7 @@
 
 #include <esl/com/http/server/Request.h>
 #include <esl/utility/MIME.h>
+#include <esl/utility/HttpMethod.h>
 
 #include <string>
 #include <map>
@@ -52,7 +53,7 @@ public:
 	uint16_t getRemotePort() const noexcept override;
 
 	const std::string& getPath() const noexcept override;
-	const std::string& getMethod() const noexcept override;
+	const esl::utility::HttpMethod& getMethod() const noexcept override;
 	const std::map<std::string, std::string>& getHeaders() const noexcept override;
 	const esl::utility::MIME& getContentType() const noexcept override;
 	bool hasArgument(const std::string& key) const noexcept override;
@@ -74,7 +75,7 @@ private:
 	std::string remoteAddress;
 	uint16_t remotePort = 0;
 
-	const std::string method;
+	const esl::utility::HttpMethod method;
 	const std::string url;
 
 

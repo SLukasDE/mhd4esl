@@ -42,7 +42,7 @@ const std::string& RequestContext::getPath() const {
 	return request.getPath();
 }
 
-esl::object::ObjectContext& RequestContext::getObjectContext() {
+esl::object::Context& RequestContext::getObjectContext() {
 	return objectContext;
 }
 

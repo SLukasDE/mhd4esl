@@ -107,7 +107,7 @@ bool hasMatchingHostname(const std::string& hostname, const std::string& hostnam
 }
 
 int mhdSniCallback(gnutls_session_t session,
-		const gnutls_datum_t*, int,
+		const gnutls_datum_t* req_ca_dn, int nreqs,
 		const gnutls_pk_algorithm_t* pk_algos, int pk_algos_length,
 		gnutls_pcert_st** pcert, unsigned int *pcertLength, gnutls_privkey_t * pkey)
 {

@@ -94,7 +94,7 @@ const std::string& Request::getPath() const noexcept {
 	return url;
 }
 
-const std::string& Request::getMethod() const noexcept {
+const esl::utility::HttpMethod& Request::getMethod() const noexcept {
 	return method;
 }
 
