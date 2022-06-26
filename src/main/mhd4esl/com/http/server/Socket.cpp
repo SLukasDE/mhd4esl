@@ -22,9 +22,10 @@
 #include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
 
-#include <esl/module/Module.h>
 #include <esl/io/Writer.h>
+#include <esl/module/Module.h>
 #include <esl/stacktrace/Stacktrace.h>
+#include <esl/utility/String.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
@@ -186,36 +187,87 @@ std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const 
 }
 
 Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings) {
-	bool hasPort = false;
+	bool hasThreads = false;
+	bool hasConnectionTimeout = false;
+	bool hasConnectionLimit = false;
+	bool hasPerIpConnectionLimit = false;
 
 	for(const auto& setting : aSettings) {
 		if(setting.first == "threads") {
-			settings.numThreads = static_cast<uint16_t>(std::stoi(setting.second));
+			if(hasThreads) {
+	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'threads'."));
+			}
+			hasThreads = true;
+
+			int i = esl::utility::String::toInt(setting.second);
+		    if(i < 0) {
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+
+			settings.numThreads = static_cast<uint16_t>(i);
 		    if(settings.numThreads <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "port") {
-			hasPort = true;
-			settings.port = static_cast<uint16_t>(std::stoi(setting.second));
-		    if(settings.port <= 0) {
+			if(settings.port != 0) {
+	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'port'."));
+			}
+
+			int i = esl::utility::String::toInt(setting.second);
+		    if(i < 0) {
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+
+			settings.port = static_cast<uint16_t>(i);
+		    if(settings.port == 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connection-timeout") {
-			settings.connectionTimeout = static_cast<unsigned int>(std::stoi(setting.second));
+			if(hasConnectionTimeout) {
+	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-timeout'."));
+			}
+			hasConnectionTimeout = true;
+
+			int i = esl::utility::String::toInt(setting.second);
+		    if(i < 0) {
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+
+			settings.connectionTimeout = static_cast<unsigned int>(i);
 		    if(settings.connectionTimeout <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connection-limit") {
-			settings.connectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
+			if(hasConnectionLimit) {
+	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-limit'."));
+			}
+			hasConnectionLimit = true;
+
+			int i = esl::utility::String::toInt(setting.second);
+		    if(i < 0) {
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+
+			settings.connectionLimit = static_cast<unsigned int>(i);
 		    if(settings.connectionLimit <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "per-ip-connection-limit") {
-			settings.perIpConnectionLimit = static_cast<unsigned int>(std::stoi(setting.second));
+			if(hasPerIpConnectionLimit) {
+	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'per-ip-connection-limit'."));
+			}
+			hasPerIpConnectionLimit = true;
+
+			int i = esl::utility::String::toInt(setting.second);
+		    if(i < 0) {
+		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    }
+
+			settings.perIpConnectionLimit = static_cast<unsigned int>(i);
 		    if(settings.perIpConnectionLimit <= 0) {
 		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -225,7 +277,7 @@ Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings
 		}
 	}
 
-	if(!hasPort) {
+	if(settings.port == 0) {
     	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Parameter \"port\" is missing"));
 	}
 
@@ -278,7 +330,7 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 
 void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
 	if (daemonPtr != nullptr) {
-		throw std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening.");
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening."));
 	}
 
 	requestHandler = &aRequestHandler;
@@ -325,7 +377,7 @@ void Socket::listen(const esl::com::http::server::requesthandler::Interface::Req
 	waitCondVar.notify_all();
 
 	if(daemonPtr == nullptr) {
-		throw std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port.");
+		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port."));
 	}
 
 	onReleasedHandler = aOnReleasedHandler;
