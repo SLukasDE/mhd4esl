@@ -27,7 +27,7 @@
 #include <esl/com/http/server/Connection.h>
 #include <esl/com/http/server/Request.h>
 #include <esl/io/Input.h>
-#include <esl/object/Interface.h>
+//#include <esl/object/Object.h>
 #include <esl/object/Context.h>
 
 #include <string>

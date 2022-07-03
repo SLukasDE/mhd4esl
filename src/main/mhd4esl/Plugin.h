@@ -16,20 +16,19 @@
  * along with mhd4esl.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <mhd4esl/Module.h>
-#include <mhd4esl/com/http/server/Socket.h>
+#ifndef MHD4ESL_PLUGIN_H_
+#define MHD4ESL_PLUGIN_H_
 
-#include <esl/com/http/server/Interface.h>
-#include <esl/Module.h>
+#include <esl/plugin/Registry.h>
 
 namespace mhd4esl {
 
-void Module::install(esl::module::Module& module) {
-	esl::setModule(module);
-
-	module.addInterface(esl::com::http::server::Interface::createInterface(
-			com::http::server::Socket::getImplementation(),
-			&com::http::server::Socket::create));
-}
+class Plugin final {
+public:
+	Plugin() = delete;
+	static void install(esl::plugin::Registry& registry, const char* data);
+};
 
 } /* namespace mhd4esl */
+
+#endif /* MHD4ESL_PLUGIN_H_ */

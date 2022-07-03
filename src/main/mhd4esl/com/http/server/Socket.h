@@ -19,10 +19,10 @@
 #ifndef MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
 #define MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
 
-#include <esl/com/http/server/requesthandler/Interface.h>
-#include <esl/com/http/server/Interface.h>
+#include <esl/com/http/server/RequestHandler.h>
+#include <esl/com/http/server/Socket.h>
 #include <esl/com/http/server/Request.h>
-#include <esl/object/Interface.h>
+#include <esl/object/Object.h>
 
 #include <condition_variable>
 #include <cstdint>
@@ -43,20 +43,20 @@ namespace server {
 
 class RequestContext;
 
-class Socket : public esl::com::http::server::Interface::Socket {
+class Socket : public esl::com::http::server::Socket {
 public:
 	static inline const char* getImplementation() {
 		return "mhd4esl";
 	}
 
-	static std::unique_ptr<esl::com::http::server::Interface::Socket> create(const std::vector<std::pair<std::string, std::string>>& settings);
+	static std::unique_ptr<esl::com::http::server::Socket> create(const std::vector<std::pair<std::string, std::string>>& settings);
 
 	Socket(const std::vector<std::pair<std::string, std::string>>& settings);
 	~Socket();
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
-	void listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
+	void listen(const esl::com::http::server::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
 	void release() override;
 
 	bool wait(std::uint32_t ms);
@@ -82,7 +82,7 @@ private:
 		unsigned int connectionLimit = 1000;
 		unsigned int perIpConnectionLimit = 0;
 	} settings;
-	const esl::com::http::server::requesthandler::Interface::RequestHandler* requestHandler = nullptr;
+	const esl::com::http::server::RequestHandler* requestHandler = nullptr;
 
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;

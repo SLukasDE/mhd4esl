@@ -19,12 +19,12 @@
 #include <mhd4esl/com/http/server/Socket.h>
 #include <mhd4esl/com/http/server/RequestContext.h>
 #include <mhd4esl/com/http/server/Connection.h>
-#include <mhd4esl/Module.h>
+//#include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
 
 #include <esl/io/Writer.h>
-#include <esl/module/Module.h>
-#include <esl/stacktrace/Stacktrace.h>
+//#include <esl/module/Module.h>
+#include <esl/system/Stacktrace.h>
 #include <esl/utility/String.h>
 
 #include <microhttpd.h>
@@ -182,8 +182,8 @@ int mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::com::http::server::Interface::Socket> Socket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
-	return std::unique_ptr<esl::com::http::server::Interface::Socket>(new Socket(settings));
+std::unique_ptr<esl::com::http::server::Socket> Socket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
+	return std::unique_ptr<esl::com::http::server::Socket>(new Socket(settings));
 }
 
 Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings) {
@@ -195,90 +195,90 @@ Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings
 	for(const auto& setting : aSettings) {
 		if(setting.first == "threads") {
 			if(hasThreads) {
-	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'threads'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'threads'."));
 			}
 			hasThreads = true;
 
 			int i = esl::utility::String::toInt(setting.second);
 		    if(i < 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			settings.numThreads = static_cast<uint16_t>(i);
 		    if(settings.numThreads <= 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "port") {
 			if(settings.port != 0) {
-	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'port'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'port'."));
 			}
 
 			int i = esl::utility::String::toInt(setting.second);
 		    if(i < 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			settings.port = static_cast<uint16_t>(i);
 		    if(settings.port == 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connection-timeout") {
 			if(hasConnectionTimeout) {
-	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-timeout'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-timeout'."));
 			}
 			hasConnectionTimeout = true;
 
 			int i = esl::utility::String::toInt(setting.second);
 		    if(i < 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			settings.connectionTimeout = static_cast<unsigned int>(i);
 		    if(settings.connectionTimeout <= 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "connection-limit") {
 			if(hasConnectionLimit) {
-	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-limit'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-limit'."));
 			}
 			hasConnectionLimit = true;
 
 			int i = esl::utility::String::toInt(setting.second);
 		    if(i < 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			settings.connectionLimit = static_cast<unsigned int>(i);
 		    if(settings.connectionLimit <= 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else if(setting.first == "per-ip-connection-limit") {
 			if(hasPerIpConnectionLimit) {
-	            throw esl::stacktrace::Stacktrace::add(std::runtime_error("multiple definition of attribute 'per-ip-connection-limit'."));
+	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'per-ip-connection-limit'."));
 			}
 			hasPerIpConnectionLimit = true;
 
 			int i = esl::utility::String::toInt(setting.second);
 		    if(i < 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			settings.perIpConnectionLimit = static_cast<unsigned int>(i);
 		    if(settings.perIpConnectionLimit <= 0) {
-		    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
+		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 		}
 		else {
-            throw esl::stacktrace::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
+            throw esl::system::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
 		}
 	}
 
 	if(settings.port == 0) {
-    	throw esl::stacktrace::Stacktrace::add(std::runtime_error("Parameter \"port\" is missing"));
+    	throw esl::system::Stacktrace::add(std::runtime_error("Parameter \"port\" is missing"));
 	}
 
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
@@ -300,7 +300,7 @@ Socket::~Socket() {
 void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
 	logger.trace << "Installing certificate and key for hostname \"" << hostname << "\"\n";
 	if (daemonPtr != nullptr) {
-		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
+		throw esl::system::Stacktrace::add(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
 	}
 
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
@@ -314,7 +314,7 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	rc = gnutls_pcert_import_x509_raw(&cert.pcrt, &gnutls_datum, GNUTLS_X509_FMT_PEM, 0);
 	if(rc < 0) {
 		logger.error << "Error installing certificate: " << gnutls_strerror (rc) << "\n";
-		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Error installing certificate: " + std::string(gnutls_strerror (rc))));
+		throw esl::system::Stacktrace::add(std::runtime_error("Error installing certificate: " + std::string(gnutls_strerror (rc))));
 	}
 
 	gnutls_datum.data = &key[0];
@@ -323,14 +323,14 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 	rc = gnutls_privkey_import_x509_raw(cert.key, &gnutls_datum, GNUTLS_X509_FMT_PEM, nullptr, 0);
 	if(rc < 0) {
 		logger.error << "Error installing key: " << gnutls_strerror (rc) << "\n";
-		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Error installing key"));
+		throw esl::system::Stacktrace::add(std::runtime_error("Error installing key"));
 	}
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
-void Socket::listen(const esl::com::http::server::requesthandler::Interface::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
+void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
 	if (daemonPtr != nullptr) {
-		throw esl::stacktrace::Stacktrace::add(std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening."));
+		throw esl::system::Stacktrace::add(std::runtime_error("HTTP socket (port=" + std::to_string(settings.port) + ") is already listening."));
 	}
 
 	requestHandler = &aRequestHandler;
@@ -377,7 +377,7 @@ void Socket::listen(const esl::com::http::server::requesthandler::Interface::Req
 	waitCondVar.notify_all();
 
 	if(daemonPtr == nullptr) {
-		throw esl::stacktrace::Stacktrace::add(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port."));
+		throw esl::system::Stacktrace::add(std::runtime_error("Couldn't start HTTP socket at port " + std::to_string(settings.port) + ". Maybe there is already a socket listening on this port."));
 	}
 
 	onReleasedHandler = aOnReleasedHandler;
@@ -452,7 +452,7 @@ int Socket::mhdAcceptHandler(void* cls,
 		catch (const std::exception& e) {
 			logger.error << "std::exception::what(): " << e.what() << std::endl;
 
-			const esl::stacktrace::Stacktrace* stacktrace = esl::stacktrace::Stacktrace::get(e);
+			const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 			if(stacktrace) {
 				logger.error << "Stacktrace:\n";
 				stacktrace->dump(logger.error);
@@ -520,7 +520,7 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 	catch (const std::exception& e) {
 		logger.error << e.what() << std::endl;
 
-		const esl::stacktrace::Stacktrace* stacktrace = esl::stacktrace::Stacktrace::get(e);
+		const esl::system::Stacktrace* stacktrace = esl::system::Stacktrace::get(e);
 		if(stacktrace) {
 			stacktrace->dump(logger.error);
 		}

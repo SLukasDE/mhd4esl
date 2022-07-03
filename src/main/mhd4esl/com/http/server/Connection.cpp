@@ -19,7 +19,7 @@
 #include <mhd4esl/com/http/server/Connection.h>
 #include <mhd4esl/Logger.h>
 
-#include <esl/stacktrace/Stacktrace.h>
+#include <esl/system/Stacktrace.h>
 
 #include <microhttpd.h>
 
@@ -121,7 +121,7 @@ long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted,
         return MHD_CONTENT_READER_END_OF_STREAM;
     }
 
-    std::unique_ptr<esl::stacktrace::Stacktrace> stacktrace = nullptr;
+    std::unique_ptr<esl::system::Stacktrace> stacktrace = nullptr;
     try {
         std::size_t size = outputPtr->getReader().read(buffer, bufferSize);
     	if(size == esl::io::Reader::npos) {
@@ -133,9 +133,9 @@ long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted,
     catch (std::exception& e) {
     	logger.error << e.what() << std::endl;
 
-    	const esl::stacktrace::Stacktrace* stacktracePtr = esl::stacktrace::Stacktrace::get(e);
+    	const esl::system::Stacktrace* stacktracePtr = esl::system::Stacktrace::get(e);
     	if(stacktracePtr) {
-            stacktrace.reset(new esl::stacktrace::Stacktrace(*stacktracePtr));
+            stacktrace = stacktracePtr->clone();
     	}
     }
     catch (...) {
