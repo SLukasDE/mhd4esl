@@ -43,7 +43,7 @@ const std::string& RequestContext::getPath() const {
 }
 
 esl::object::Context& RequestContext::getObjectContext() {
-	return objectContext;
+	return context;
 }
 
 } /* namespace server */

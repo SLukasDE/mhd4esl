@@ -19,11 +19,9 @@
 #include <mhd4esl/com/http/server/Socket.h>
 #include <mhd4esl/com/http/server/RequestContext.h>
 #include <mhd4esl/com/http/server/Connection.h>
-//#include <mhd4esl/Module.h>
 #include <mhd4esl/Logger.h>
 
 #include <esl/io/Writer.h>
-//#include <esl/module/Module.h>
 #include <esl/system/Stacktrace.h>
 #include <esl/utility/String.h>
 

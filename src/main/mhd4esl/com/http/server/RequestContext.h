@@ -21,7 +21,8 @@
 
 #include <mhd4esl/com/http/server/Connection.h>
 #include <mhd4esl/com/http/server/Request.h>
-#include <mhd4esl/com/http/server/ObjectContext.h>
+
+#include <common4esl/object/Context.h>
 
 #include <esl/com/http/server/RequestContext.h>
 #include <esl/com/http/server/Connection.h>
@@ -55,7 +56,7 @@ private:
 	mutable Connection connection;
 	Request request;
 	esl::io::Input input;
-	ObjectContext objectContext;
+	common4esl::object::Context context;
 };
 
 } /* namespace server */
