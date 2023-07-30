@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019-2022 Sven Lukas
+ * Copyright (C) 2019-2023 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -36,6 +36,7 @@
 #include <stdexcept>
 
 namespace mhd4esl {
+inline namespace v1_6 {
 namespace com {
 namespace http {
 namespace server {
@@ -544,4 +545,5 @@ bool Socket::accept(RequestContext& requestContext, const char* uploadData, std:
 } /* namespace server */
 } /* namespace http */
 } /* namespace com */
+} /* inline namespace v1_6 */
 } /* namespace mhd4esl */

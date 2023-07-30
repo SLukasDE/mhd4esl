@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019-2022 Sven Lukas
+ * Copyright (C) 2019-2023 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -22,6 +22,7 @@
 #include <esl/com/http/server/Socket.h>
 
 namespace mhd4esl {
+inline namespace v1_6 {
 
 void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 	esl::plugin::Registry::set(registry);
@@ -31,4 +32,5 @@ void Plugin::install(esl::plugin::Registry& registry, const char* data) {
 			&com::http::server::Socket::create);
 }
 
+} /* inline namespace v1_6 */
 } /* namespace mhd4esl */

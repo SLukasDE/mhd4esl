@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019-2022 Sven Lukas
+ * Copyright (C) 2019-2023 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -22,6 +22,7 @@
 #include <esl/plugin/Registry.h>
 
 namespace mhd4esl {
+inline namespace v1_6 {
 
 class Plugin final {
 public:
@@ -29,6 +30,7 @@ public:
 	static void install(esl::plugin::Registry& registry, const char* data);
 };
 
+} /* inline namespace v1_6 */
 } /* namespace mhd4esl */
 
 #endif /* MHD4ESL_PLUGIN_H_ */

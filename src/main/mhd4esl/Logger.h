@@ -1,6 +1,6 @@
 /*
  * This file is part of mhd4esl.
- * Copyright (C) 2019-2022 Sven Lukas
+ * Copyright (C) 2019-2023 Sven Lukas
  *
  * Mhd4esl is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser Public License as published by
@@ -23,6 +23,7 @@
 #include <esl/logging/Level.h>
 
 namespace mhd4esl {
+inline namespace v1_6 {
 
 #ifdef MHD4ESL_LOGGING_LEVEL_DEBUG
 using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
@@ -31,6 +32,7 @@ using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
 using Logger = esl::logging::Logger<esl::logging::Level::TRACE>;
 #endif
 
+} /* inline namespace v1_6 */
 } /* namespace mhd4esl */
 
 #endif /* MHD4ESL_LOGGER_H_ */
