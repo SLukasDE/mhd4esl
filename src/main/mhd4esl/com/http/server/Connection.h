@@ -25,11 +25,11 @@
 
 #include <boost/filesystem.hpp>
 
-#include <string>
-#include <vector>
 #include <functional>
 #include <memory>
+#include <string>
 #include <tuple>
+#include <vector>
 
 struct MHD_Connection;
 struct MHD_Response;

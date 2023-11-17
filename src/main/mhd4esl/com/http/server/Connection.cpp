@@ -17,8 +17,9 @@
  */
 
 #include <mhd4esl/com/http/server/Connection.h>
-#include <mhd4esl/Logger.h>
 
+#include <esl/io/Reader.h>
+#include <esl/Logger.h>
 #include <esl/system/Stacktrace.h>
 
 #include <microhttpd.h>
@@ -34,7 +35,7 @@ namespace http {
 namespace server {
 
 namespace {
-Logger logger("mhd4esl::com::http::Connection");
+esl::Logger logger("mhd4esl::com::http::Connection");
 }
 
 Connection::Connection(MHD_Connection& mhdConnection)

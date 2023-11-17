@@ -52,6 +52,7 @@ public:
 	const esl::com::http::server::Request& getRequest() const override;
 	const std::string& getPath() const override;
 	esl::object::Context& getObjectContext() override;
+	const esl::object::Context& getObjectContext() const override;
 
 private:
 	mutable Connection connection;

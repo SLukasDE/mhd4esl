@@ -19,8 +19,9 @@
 #ifndef MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
 #define MHD4ESL_COM_HTTP_SERVER_SOCKET_H_
 
+#include <esl/com/http/server/MHDSocket.h>
+
 #include <esl/com/http/server/RequestHandler.h>
-#include <esl/com/http/server/Socket.h>
 #include <esl/com/http/server/Request.h>
 #include <esl/object/Object.h>
 
@@ -46,17 +47,12 @@ class RequestContext;
 
 class Socket : public esl::com::http::server::Socket {
 public:
-	static inline const char* getImplementation() {
-		return "mhd4esl";
-	}
-
-	static std::unique_ptr<esl::com::http::server::Socket> create(const std::vector<std::pair<std::string, std::string>>& settings);
-
-	Socket(const std::vector<std::pair<std::string, std::string>>& settings);
+	Socket(const esl::com::http::server::MHDSocket::Settings& settings);
 	~Socket();
 
 	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
+	void listen(const esl::com::http::server::RequestHandler& requestHandler) override;
 	void listen(const esl::com::http::server::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
 	void release() override;
 
@@ -76,15 +72,8 @@ private:
 	void accessThreadInc() noexcept {}
 	void accessThreadDec() noexcept {}
 
-	struct Settings {
-		uint16_t port = 0;
-		uint16_t numThreads = 4;
-		unsigned int connectionTimeout = 120;
-		unsigned int connectionLimit = 1000;
-		unsigned int perIpConnectionLimit = 0;
-	} settings;
+	esl::com::http::server::MHDSocket::Settings settings;
 	const esl::com::http::server::RequestHandler* requestHandler = nullptr;
-
 	void* daemonPtr = nullptr; // MHD_Daemon*
 	bool usingTLS = false;
 	std::function<void()> onReleasedHandler;

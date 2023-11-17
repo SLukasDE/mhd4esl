@@ -19,11 +19,12 @@
 #include <mhd4esl/com/http/server/Socket.h>
 #include <mhd4esl/com/http/server/RequestContext.h>
 #include <mhd4esl/com/http/server/Connection.h>
-#include <mhd4esl/Logger.h>
+
+#include <esl/Logger.h>
+#include <esl/utility/String.h>
 
 #include <esl/io/Writer.h>
 #include <esl/system/Stacktrace.h>
-#include <esl/utility/String.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
@@ -42,7 +43,7 @@ namespace http {
 namespace server {
 
 namespace {
-Logger logger("mhd4esl::com::http::server::Socket");
+esl::Logger logger("mhd4esl::com::http::server::Socket");
 
 const std::string PAGE_404(
 		"<!DOCTYPE html>\n"
@@ -181,105 +182,9 @@ int mhdSniCallback(gnutls_session_t session,
 } /* anonymour namespace */
 
 
-std::unique_ptr<esl::com::http::server::Socket> Socket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
-	return std::unique_ptr<esl::com::http::server::Socket>(new Socket(settings));
-}
-
-Socket::Socket(const std::vector<std::pair<std::string, std::string>>& aSettings) {
-	bool hasThreads = false;
-	bool hasConnectionTimeout = false;
-	bool hasConnectionLimit = false;
-	bool hasPerIpConnectionLimit = false;
-
-	for(const auto& setting : aSettings) {
-		if(setting.first == "threads") {
-			if(hasThreads) {
-	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'threads'."));
-			}
-			hasThreads = true;
-
-			int i = esl::utility::String::toInt(setting.second);
-		    if(i < 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-
-			settings.numThreads = static_cast<uint16_t>(i);
-		    if(settings.numThreads <= 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-		}
-		else if(setting.first == "port") {
-			if(settings.port != 0) {
-	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'port'."));
-			}
-
-			int i = esl::utility::String::toInt(setting.second);
-		    if(i < 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-
-			settings.port = static_cast<uint16_t>(i);
-		    if(settings.port == 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-		}
-		else if(setting.first == "connection-timeout") {
-			if(hasConnectionTimeout) {
-	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-timeout'."));
-			}
-			hasConnectionTimeout = true;
-
-			int i = esl::utility::String::toInt(setting.second);
-		    if(i < 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-
-			settings.connectionTimeout = static_cast<unsigned int>(i);
-		    if(settings.connectionTimeout <= 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-		}
-		else if(setting.first == "connection-limit") {
-			if(hasConnectionLimit) {
-	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'connection-limit'."));
-			}
-			hasConnectionLimit = true;
-
-			int i = esl::utility::String::toInt(setting.second);
-		    if(i < 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-
-			settings.connectionLimit = static_cast<unsigned int>(i);
-		    if(settings.connectionLimit <= 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-		}
-		else if(setting.first == "per-ip-connection-limit") {
-			if(hasPerIpConnectionLimit) {
-	            throw esl::system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'per-ip-connection-limit'."));
-			}
-			hasPerIpConnectionLimit = true;
-
-			int i = esl::utility::String::toInt(setting.second);
-		    if(i < 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-
-			settings.perIpConnectionLimit = static_cast<unsigned int>(i);
-		    if(settings.perIpConnectionLimit <= 0) {
-		    	throw esl::system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
-		    }
-		}
-		else {
-            throw esl::system::Stacktrace::add(std::runtime_error("unknown attribute '\"" + setting.first + "\"'."));
-		}
-	}
-
-	if(settings.port == 0) {
-    	throw esl::system::Stacktrace::add(std::runtime_error("Parameter \"port\" is missing"));
-	}
-
+Socket::Socket(const esl::com::http::server::MHDSocket::Settings& aSettings)
+: settings(aSettings)
+{
 	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
 	socketCerts.insert(std::make_pair(this, Certs()));
 }
@@ -325,6 +230,9 @@ void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> 
 		throw esl::system::Stacktrace::add(std::runtime_error("Error installing key"));
 	}
 	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
+}
+
+void Socket::listen(const esl::com::http::server::RequestHandler& requestHandler) {
 }
 
 void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {

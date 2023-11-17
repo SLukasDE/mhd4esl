@@ -18,8 +18,9 @@
 
 #include <mhd4esl/com/http/server/Request.h>
 
-#include <esl/system/Stacktrace.h>
 #include <esl/utility/String.h>
+
+#include <esl/system/Stacktrace.h>
 
 #include <microhttpd.h>
 
