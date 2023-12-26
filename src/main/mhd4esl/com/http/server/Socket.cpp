@@ -20,7 +20,11 @@
 #include <mhd4esl/com/http/server/RequestContext.h>
 #include <mhd4esl/com/http/server/Connection.h>
 
+#include <gtx4esl/crypto/Entries.h>
+#include <gtx4esl/crypto/Entry.h>
+
 #include <esl/Logger.h>
+#include <esl/plugin/Registry.h>
 #include <esl/utility/String.h>
 
 #include <esl/io/Writer.h>
@@ -35,6 +39,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 
 namespace mhd4esl {
 inline namespace v1_6 {
@@ -82,16 +87,6 @@ void mhdRequestCompletedHandler(void* cls,
     *requestContext = nullptr;
 }
 
-struct Cert {
-	gnutls_pcert_st pcrt;
-	gnutls_privkey_t key;
-};
-
-using Certs = std::map<std::string, Cert>;
-
-std::mutex socketCertsMutex;
-std::map<Socket*, Certs> socketCerts; // SocketPtr -> (Hostname -> cert)
-
 bool hasMatchingHostname(const std::string& hostname, const std::string& hostnamePattern) {
 	logger.debug << "Check if hostname = \"" << hostname << "\" matches to hostnamePatter = \"" << hostnamePattern << "\".\n";
 
@@ -136,37 +131,37 @@ int mhdSniCallback(gnutls_session_t session,
 		}
 	}
 
-	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
-
 	logger.trace << "Search certificate for hostname \"" << hostname << "\".\n";
 	const std::string* foundHostname = nullptr;
 
-	for(auto& certs : socketCerts) {
-		for(auto& cert : certs.second) {
-			logger.trace << "Check certificate for hostname \"" << cert.first << "\".\n";
-			if(!hasMatchingHostname(hostname, cert.first)) {
-				logger.trace << "Certificate for hostname \"" << cert.first << "\" does not match\n";
+	gtx4esl::crypto::Entries* keyStoreEntriesPtr = esl::plugin::Registry::get().findObject<gtx4esl::crypto::Entries>();
+
+	if(keyStoreEntriesPtr) {
+		for(auto& entry : keyStoreEntriesPtr->entryByHostname) {
+			logger.trace << "Check certificate for hostname \"" << entry.first << "\".\n";
+			if(!hasMatchingHostname(hostname, entry.first)) {
+				logger.trace << "Certificate for hostname \"" << entry.first << "\" does not match\n";
 				continue;
 			}
 
-			if(!cert.first.empty() && cert.first.at(0) != '*') {
-				logger.trace << "Certificate for hostname \"" << cert.first << "\" is a perfect match\n";
-				foundHostname = &cert.first;
-				*pkey = cert.second.key;
+			if(!entry.first.empty() && entry.first.at(0) != '*') {
+				logger.trace << "Certificate for hostname \"" << entry.first << "\" is a perfect match\n";
+				foundHostname = &entry.first;
+				*pkey = entry.second.key;
 				*pcertLength = 1;
-				*pcert = &cert.second.pcrt;
+				*pcert = &entry.second.pcrt;
 				return 0;
 			}
-			else if(foundHostname != nullptr && cert.first.size() < foundHostname->size()) {
-				logger.trace << "Skip certificate for hostname \"" << cert.first << "\" because better match has been found already.\n";
+			else if(foundHostname != nullptr && entry.first.size() < foundHostname->size()) {
+				logger.trace << "Skip certificate for hostname \"" << entry.first << "\" because better match has been found already.\n";
 				continue;
 			}
 
-			logger.trace << "Use certificate for hostname \"" << cert.first << "\"\n";
-			foundHostname = &cert.first;
-			*pkey = cert.second.key;
+			logger.trace << "Use certificate for hostname \"" << entry.first << "\"\n";
+			foundHostname = &entry.first;
+			*pkey = entry.second.key;
 			*pcertLength = 1;
-			*pcert = &cert.second.pcrt;
+			*pcert = &entry.second.pcrt;
 		}
 	}
 
@@ -184,10 +179,7 @@ int mhdSniCallback(gnutls_session_t session,
 
 Socket::Socket(const esl::com::http::server::MHDSocket::Settings& aSettings)
 : settings(aSettings)
-{
-	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
-	socketCerts.insert(std::make_pair(this, Certs()));
-}
+{ }
 
 Socket::~Socket() {
 	if (daemonPtr != nullptr) {
@@ -195,41 +187,7 @@ Socket::~Socket() {
 		MHD_Daemon* d = static_cast<MHD_Daemon*>(daemonPtr);
 		MHD_stop_daemon (d);
 		daemonPtr = nullptr;
-
-		std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
-		socketCerts.erase(this);
 	}
-}
-
-void Socket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
-	logger.trace << "Installing certificate and key for hostname \"" << hostname << "\"\n";
-	if (daemonPtr != nullptr) {
-		throw esl::system::Stacktrace::add(std::runtime_error("Calling Socket::addTLSHost not allowed, because HTTP socket is already listening"));
-	}
-
-	std::lock_guard<std::mutex> socketCertsLock(socketCertsMutex);
-
-	Cert& cert = socketCerts[this][hostname];
-	gnutls_datum_t gnutls_datum;
-	int rc;
-
-	gnutls_datum.data = &certificate[0];
-	gnutls_datum.size = static_cast<unsigned int>(certificate.size());
-	rc = gnutls_pcert_import_x509_raw(&cert.pcrt, &gnutls_datum, GNUTLS_X509_FMT_PEM, 0);
-	if(rc < 0) {
-		logger.error << "Error installing certificate: " << gnutls_strerror (rc) << "\n";
-		throw esl::system::Stacktrace::add(std::runtime_error("Error installing certificate: " + std::string(gnutls_strerror (rc))));
-	}
-
-	gnutls_datum.data = &key[0];
-	gnutls_datum.size = static_cast<unsigned int>(key.size());
-	gnutls_privkey_init(&cert.key);
-	rc = gnutls_privkey_import_x509_raw(cert.key, &gnutls_datum, GNUTLS_X509_FMT_PEM, nullptr, 0);
-	if(rc < 0) {
-		logger.error << "Error installing key: " << gnutls_strerror (rc) << "\n";
-		throw esl::system::Stacktrace::add(std::runtime_error("Error installing key"));
-	}
-	logger.info << "Successfully installed certificate and key for hostname \"" << hostname << "\"\n";
 }
 
 void Socket::listen(const esl::com::http::server::RequestHandler& requestHandler) {
@@ -242,7 +200,6 @@ void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandle
 
 	requestHandler = &aRequestHandler;
 
-	usingTLS = !socketCerts[this].empty();
 	unsigned int flags = MHD_USE_SELECT_INTERNALLY;
 
 	flags |= MHD_USE_THREAD_PER_CONNECTION;
@@ -254,7 +211,7 @@ void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandle
     flags |= MHD_USE_DEBUG;
 #endif
 
-	if(usingTLS) {
+	if(settings.https) {
 		std::lock_guard<std::mutex> lock(waitNotifyMutex);
 
 	    flags |= MHD_USE_SSL;

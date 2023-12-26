@@ -4,7 +4,6 @@
 
 #include <mhd4esl/com/http/server/Socket.h>
 
-
 #include <stdexcept>
 
 namespace esl {
@@ -14,24 +13,36 @@ namespace http {
 namespace server {
 
 MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::string>>& settings) {
+	bool hasHttps = false;
 	bool hasThreads = false;
 	bool hasConnectionTimeout = false;
 	bool hasConnectionLimit = false;
 	bool hasPerIpConnectionLimit = false;
 
 	for(const auto& setting : settings) {
-		if(setting.first == "threads") {
+		if(setting.first == "https") {
+			if(hasHttps) {
+	            throw system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'https'."));
+			}
+			hasHttps = true;
+			https = esl::utility::String::toBool(setting.second);
+		}
+		else if(setting.first == "threads") {
 			if(hasThreads) {
 	            throw system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'threads'."));
 			}
 			hasThreads = true;
 
-			int i = esl::utility::String::toInt(setting.second);
+#if 0
+			int i = esl::utility::String::toNumber<int>(setting.second);
 		    if(i < 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
 
 			numThreads = static_cast<uint16_t>(i);
+#else
+			numThreads = esl::utility::String::toNumber<uint16_t>(setting.second);
+#endif
 		    if(numThreads <= 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -41,7 +52,7 @@ MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::stri
 	            throw system::Stacktrace::add(std::runtime_error("multiple definition of attribute 'port'."));
 			}
 
-			int i = utility::String::toInt(setting.second);
+			int i = utility::String::toNumber<int>(setting.second);
 		    if(i < 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -57,7 +68,7 @@ MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::stri
 			}
 			hasConnectionTimeout = true;
 
-			int i = utility::String::toInt(setting.second);
+			int i = utility::String::toNumber<int>(setting.second);
 		    if(i < 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -73,7 +84,7 @@ MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::stri
 			}
 			hasConnectionLimit = true;
 
-			int i = utility::String::toInt(setting.second);
+			int i = utility::String::toNumber<int>(setting.second);
 		    if(i < 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -89,7 +100,7 @@ MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::stri
 			}
 			hasPerIpConnectionLimit = true;
 
-			int i = utility::String::toInt(setting.second);
+			int i = utility::String::toNumber<int>(setting.second);
 		    if(i < 0) {
 		    	throw system::Stacktrace::add(std::runtime_error("Invalid negative value for \"" + setting.first + "\"=\"" + setting.second + "\""));
 		    }
@@ -115,10 +126,6 @@ MHDSocket::MHDSocket(const Settings& settings)
 
 std::unique_ptr<Socket> MHDSocket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 	return std::unique_ptr<Socket>(new MHDSocket(Settings(settings)));
-}
-
-void MHDSocket::addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) {
-	socket->addTLSHost(hostname, std::move(certificate), std::move(key));
 }
 
 void MHDSocket::listen(const RequestHandler& requestHandler) {

@@ -23,6 +23,7 @@ public:
 		Settings() = default;
 		Settings(const std::vector<std::pair<std::string, std::string>>& settings);
 
+		bool https = false;
 		uint16_t port = 0;
 		uint16_t numThreads = 4;
 		unsigned int connectionTimeout = 120;
@@ -33,8 +34,6 @@ public:
 	MHDSocket(const Settings& settings);
 
 	static std::unique_ptr<Socket> create(const std::vector<std::pair<std::string, std::string>>& settings);
-
-	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
 	/* this method is blocking. */
 	void listen(const RequestHandler& requestHandler) override;

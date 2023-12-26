@@ -31,9 +31,7 @@
 #include <memory>
 #include <mutex>
 #include <string.h> // size_t
-#include <string>
 #include <utility>
-#include <vector>
 
 struct MHD_Connection;
 
@@ -49,8 +47,6 @@ class Socket : public esl::com::http::server::Socket {
 public:
 	Socket(const esl::com::http::server::MHDSocket::Settings& settings);
 	~Socket();
-
-	void addTLSHost(const std::string& hostname, std::vector<unsigned char> certificate, std::vector<unsigned char> key) override;
 
 	void listen(const esl::com::http::server::RequestHandler& requestHandler) override;
 	void listen(const esl::com::http::server::RequestHandler& requestHandler, std::function<void()> onReleasedHandler) override;
