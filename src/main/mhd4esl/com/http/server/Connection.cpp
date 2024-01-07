@@ -82,8 +82,8 @@ bool Connection::send(const esl::com::http::server::Response& response, esl::io:
 	return sendResponse(response, mhdResponse);
 }
 
-bool Connection::send(const esl::com::http::server::Response& response, boost::filesystem::path path) {
-    int fd = open(path.generic_string().c_str(), O_RDONLY);
+bool Connection::sendFile(const esl::com::http::server::Response& response, const std::string& path) {
+    int fd = open(path.c_str(), O_RDONLY);
     if(fd < 0) {
         return false;
     }

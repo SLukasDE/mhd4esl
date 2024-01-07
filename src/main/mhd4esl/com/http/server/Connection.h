@@ -23,8 +23,6 @@
 #include <esl/com/http/server/Response.h>
 #include <esl/io/Output.h>
 
-#include <boost/filesystem.hpp>
-
 #include <functional>
 #include <memory>
 #include <string>
@@ -51,8 +49,9 @@ public:
 	bool hasResponseSent() noexcept;
 
 	bool send(const esl::com::http::server::Response& response, const void* data, std::size_t size) noexcept;
+
 	bool send(const esl::com::http::server::Response& response, esl::io::Output output) override;
-	bool send(const esl::com::http::server::Response& response, boost::filesystem::path path) override;
+	bool sendFile(const esl::com::http::server::Response& response, const std::string& path) override;
 
 private:
 	bool sendResponse(const esl::com::http::server::Response& response, MHD_Response* mhdResponse) noexcept;
