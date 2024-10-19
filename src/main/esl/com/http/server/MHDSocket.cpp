@@ -121,11 +121,15 @@ MHDSocket::Settings::Settings(const std::vector<std::pair<std::string, std::stri
 }
 
 MHDSocket::MHDSocket(const Settings& settings)
-: socket(new mhd4esl::com::http::server::Socket(settings))
+: socket(createNative(settings))
 { }
 
 std::unique_ptr<Socket> MHDSocket::create(const std::vector<std::pair<std::string, std::string>>& settings) {
 	return std::unique_ptr<Socket>(new MHDSocket(Settings(settings)));
+}
+
+std::unique_ptr<Socket> MHDSocket::createNative(const Settings& settings) {
+	return std::unique_ptr<Socket>(new mhd4esl::com::http::server::Socket(settings));
 }
 
 void MHDSocket::listen(const RequestHandler& requestHandler) {

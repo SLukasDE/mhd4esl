@@ -24,8 +24,13 @@
 
 #include <microhttpd.h>
 
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#endif
 
 #include <cstdlib>
 #include <cstring>
@@ -44,9 +49,10 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
   method(aMethod),
   url(aUrl)
 {
-	const MHD_ConnectionInfo* connectionInfo = MHD_get_connection_info(&mhdConnection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
-
 	MHD_get_connection_values(&mhdConnection, MHD_HEADER_KIND, readHeaders, this);
+
+#ifndef _WIN32
+	const MHD_ConnectionInfo* connectionInfo = MHD_get_connection_info(&mhdConnection, MHD_CONNECTION_INFO_CLIENT_ADDRESS);
 
 	if(connectionInfo != nullptr) {
 		char strBuffer[INET6_ADDRSTRLEN];
@@ -70,6 +76,7 @@ Request::Request(MHD_Connection& aMhdConnection, const char* aHttpVersion, const
 
 		remotePort = static_cast<uint16_t>(reinterpret_cast<sockaddr_in const*>(connectionInfo->client_addr)->sin_port);
 	}
+#endif
 }
 
 bool Request::isHTTPS() const noexcept {
@@ -135,7 +142,7 @@ uint16_t Request::getRemotePort() const noexcept {
 	return remotePort;
 }
 
-int Request::readHeaders(void* requestPtr, MHD_ValueKind, const char* key, const char* valuePtr) {
+MHD_Result Request::readHeaders(void* requestPtr, MHD_ValueKind, const char* key, const char* valuePtr) {
 	Request& request = *reinterpret_cast<Request*>(requestPtr);
 
 	std::string& value = request.headers[key];

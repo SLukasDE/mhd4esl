@@ -33,7 +33,9 @@
 #include <string.h> // size_t
 #include <utility>
 
-struct MHD_Connection;
+#include <microhttpd.h>
+//struct MHD_Connection;
+//forward declaration of "enum MHD_Result" is not possible
 
 namespace mhd4esl {
 inline namespace v1_6 {
@@ -55,7 +57,7 @@ public:
 	bool wait(std::uint32_t ms);
 
 private:
-	static int mhdAcceptHandler(void* cls,
+	static MHD_Result mhdAcceptHandler(void* cls,
 	        MHD_Connection* connection,
 	        const char* url,
 	        const char* method,

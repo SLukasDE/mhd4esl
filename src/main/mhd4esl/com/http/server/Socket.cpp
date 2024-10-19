@@ -23,12 +23,14 @@
 #include <gtx4esl/crypto/Entries.h>
 #include <gtx4esl/crypto/Entry.h>
 
+#include <esl/com/http/server/exception/StatusCode.h>
+#include <esl/com/http/server/Response.h>
+#include <esl/io/output/String.h>
+#include <esl/io/Writer.h>
 #include <esl/Logger.h>
 #include <esl/plugin/Registry.h>
-#include <esl/utility/String.h>
-
-#include <esl/io/Writer.h>
 #include <esl/system/Stacktrace.h>
+#include <esl/utility/String.h>
 
 #include <microhttpd.h>
 #include <gnutls/gnutls.h>
@@ -283,7 +285,7 @@ bool Socket::wait(std::uint32_t ms) {
 	}
 }
 
-int Socket::mhdAcceptHandler(void* cls,
+MHD_Result Socket::mhdAcceptHandler(void* cls,
 		MHD_Connection* mhdConnection,
 		const char* url,
 		const char* method,
@@ -309,9 +311,14 @@ int Socket::mhdAcceptHandler(void* cls,
 			*requestContext = new RequestContext(*mhdConnection, version, method, url, socket->usingTLS, socket->settings.port);
 			(*requestContext)->input = socket->requestHandler->accept(**requestContext);
 
-			if((*requestContext)->input &&*uploadDataSize == 0) {
+			if((*requestContext)->input && *uploadDataSize == 0) {
 				return MHD_YES;
 			}
+		}
+		catch(const esl::com::http::server::exception::StatusCode& e) {
+			esl::com::http::server::Response response(e.getStatusCode(), e.getMimeType());
+			(*requestContext)->getConnection().send(response, esl::io::output::String::create(e.what()));
+			return MHD_YES;
 		}
 		catch (const std::exception& e) {
 			logger.error << "std::exception::what(): " << e.what() << std::endl;

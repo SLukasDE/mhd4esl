@@ -56,7 +56,7 @@ public:
 private:
 	bool sendResponse(const esl::com::http::server::Response& response, MHD_Response* mhdResponse) noexcept;
 
-    static long int contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize);
+    static ssize_t contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize);
     static void contentReaderFreeCallback(void* cls);
 
 	MHD_Connection& mhdConnection;

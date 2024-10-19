@@ -117,7 +117,7 @@ bool Connection::sendResponse(const esl::com::http::server::Response& response, 
 	return true;
 }
 
-long int Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize) {
+ssize_t Connection::contentReaderCallback(void* cls, uint64_t bytesTransmitted, char* buffer, size_t bufferSize) {
     esl::io::Output* outputPtr = static_cast<esl::io::Output*>(cls);
     if(outputPtr == nullptr) {
         return MHD_CONTENT_READER_END_OF_STREAM;

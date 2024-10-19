@@ -20,7 +20,6 @@ namespace server {
 class MHDSocket : public Socket {
 public:
 	struct Settings {
-		Settings() = default;
 		Settings(const std::vector<std::pair<std::string, std::string>>& settings);
 
 		bool https = false;
@@ -34,6 +33,7 @@ public:
 	MHDSocket(const Settings& settings);
 
 	static std::unique_ptr<Socket> create(const std::vector<std::pair<std::string, std::string>>& settings);
+	static std::unique_ptr<Socket> createNative(const Settings& settings);
 
 	/* this method is blocking. */
 	void listen(const RequestHandler& requestHandler) override;

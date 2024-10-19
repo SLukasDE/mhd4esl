@@ -62,7 +62,7 @@ public:
 
 
 private:
-	static int readHeaders(void* requestPtr, MHD_ValueKind kind, const char* key, const char* value);
+	static MHD_Result readHeaders(void* requestPtr, MHD_ValueKind kind, const char* key, const char* value);
 
 	MHD_Connection& mhdConnection;
 
