@@ -193,6 +193,8 @@ Socket::~Socket() {
 }
 
 void Socket::listen(const esl::com::http::server::RequestHandler& requestHandler) {
+	listen(requestHandler, nullptr);
+	wait(0);
 }
 
 void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandler, std::function<void()> aOnReleasedHandler) {
@@ -202,9 +204,13 @@ void Socket::listen(const esl::com::http::server::RequestHandler& aRequestHandle
 
 	requestHandler = &aRequestHandler;
 
-	unsigned int flags = MHD_USE_SELECT_INTERNALLY;
+	unsigned int flags = 0;
 
-	flags |= MHD_USE_THREAD_PER_CONNECTION;
+	if(settings.numThreads == 0) {
+		flags |= MHD_USE_THREAD_PER_CONNECTION;
+	}
+
+	flags |= MHD_USE_SELECT_INTERNALLY;
 	// flags |= MHD_USE_POLL_INTERNALLY;
 
 	// flags |= MHD_USE_SUSPEND_RESUME;

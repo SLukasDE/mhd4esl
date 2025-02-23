@@ -26,7 +26,7 @@ public:
 		uint16_t port = 0;
 		uint16_t numThreads = 4;
 		unsigned int connectionTimeout = 120;
-		unsigned int connectionLimit = 1000;
+		unsigned int connectionLimit = 15;
 		unsigned int perIpConnectionLimit = 0;
 	};
 
